@@ -1,0 +1,10 @@
+# Evaluation labels only; the radar never reads this file at run time.
+# A new item hits a label when its normalized URL equals any alias.
+# Papers (arXiv) are tracked by 3dgen_tracker, not here.
+- id: G1
+  title: Gemini 4 Argon for Robotics
+  date: 2026-10-13
+  expect: {entity: deepmind-robotics, type: rss}
+  aliases:
+    - developers.googleblog.com/gemini-4-argon-for-robotics
+    - deepmind.google/blog/gemini-4-argon-for-robotics

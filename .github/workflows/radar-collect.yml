@@ -6,11 +6,6 @@ on:
       domain:
         description: Domain under domains/
         default: embodied
-      backend:
-        description: Search backend (empty = domain.yaml)
-        type: choice
-        options: ["", searxng, ddgs]
-        default: ""
 
 permissions:
   contents: read
@@ -27,7 +22,6 @@ jobs:
       - run: pip install ".[test]"
       - run: pytest -q
       - name: Start SearXNG
-        if: inputs.backend != 'ddgs'
         run: |
           docker run -d --name searxng -p 8080:8080 -v "$PWD/ci/searxng:/etc/searxng" searxng/searxng:latest
           for i in $(seq 1 30); do
@@ -36,9 +30,13 @@ jobs:
           done
           docker logs searxng | tail -50
           exit 1
-      - run: python -m radar.collect --domain "${{ inputs.domain }}" ${{ inputs.backend && format('--backend {0}', inputs.backend) || '' }}
+      - run: python -m radar.collect --domain "${{ inputs.domain }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: collect-${{ inputs.domain }}
-          path: out/${{ inputs.domain }}/latest/
+          path: |
+            out/${{ inputs.domain }}/latest/
+            state/${{ inputs.domain }}/

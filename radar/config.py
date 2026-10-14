@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
 
 import yaml
 
 TIERS = {"core", "trial", "dormant"}
+DIRECTIONS = {"brain", "data_sim"}
+CHANNEL_FIELDS = {"rss": "url", "page": "url", "github": "org", "hf": "org"}
 
 
 @dataclass
@@ -13,15 +14,14 @@ class Domain:
     raw: dict
     entities: list[dict]
     queries: list[str]
-    gold: list[dict]
 
     @property
     def search(self) -> dict:
         return self.raw.get("search", {})
 
     @property
-    def control(self) -> dict:
-        return self.raw["control"]
+    def page(self) -> dict:
+        return self.raw.get("page", {})
 
 
 def _read(path: Path):
@@ -34,26 +34,25 @@ def load(domain_dir: str | Path) -> Domain:
     raw = _read(root / "domain.yaml")
     entities = _read(root / "entities.yaml") or []
     queries = _read(root / "queries.yaml") or []
-    gold = _read(root / "gold.yaml") or []
 
     seen = set()
     for e in entities:
-        for key in ("id", "name", "tier", "query"):
+        for key in ("id", "name", "direction", "tier", "channels"):
             if not e.get(key):
-                raise ValueError(f"entity {e!r} is missing {key}")
-        if e["tier"] not in TIERS:
-            raise ValueError(f"entity {e['id']}: tier {e['tier']!r} not in {sorted(TIERS)}")
+                raise ValueError(f"entity {e.get('id', e)!r} is missing {key}")
         if e["id"] in seen:
             raise ValueError(f"duplicate entity id {e['id']}")
         seen.add(e["id"])
+        if e["tier"] not in TIERS:
+            raise ValueError(f"entity {e['id']}: tier {e['tier']!r} not in {sorted(TIERS)}")
+        if e["direction"] not in DIRECTIONS:
+            raise ValueError(f"entity {e['id']}: direction {e['direction']!r} not in {sorted(DIRECTIONS)}")
+        for ch in e["channels"]:
+            field = CHANNEL_FIELDS.get(ch.get("type"))
+            if field is None:
+                raise ValueError(f"entity {e['id']}: channel type {ch.get('type')!r} not in {sorted(CHANNEL_FIELDS)}")
+            if not ch.get(field):
+                raise ValueError(f"entity {e['id']}: {ch['type']} channel needs {field}")
     if not all(isinstance(q, str) and q.strip() for q in queries):
         raise ValueError("queries.yaml must be a list of non-empty strings")
-    gold_ids = set()
-    for g in gold:
-        if not g.get("id") or not g.get("aliases") or not isinstance(g.get("date"), date):
-            raise ValueError(f"gold item {g!r} needs id, a YYYY-MM-DD date and aliases")
-        gold_ids.add(g["id"])
-    control = raw.get("control") or {}
-    if not control.get("query") or control.get("gold") not in gold_ids:
-        raise ValueError("domain.yaml control needs a query and a gold id present in gold.yaml")
-    return Domain(name=raw.get("name", root.name), raw=raw, entities=entities, queries=queries, gold=gold)
+    return Domain(name=raw.get("name", root.name), raw=raw, entities=entities, queries=queries)

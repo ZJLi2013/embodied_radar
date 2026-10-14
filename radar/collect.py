@@ -1,141 +1,164 @@
-"""One collection run: search the last week, normalize, dedupe, fetch, and summarize."""
+"""One collection run: every channel of every team, plus supplementary open search."""
 
 import argparse
 import json
+import os
 import time
-from collections import Counter
-from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
+import requests
+import trafilatura
+import yaml
+
 from radar import config
-from radar.fetch import fetch
+from radar.channels import COLLECTORS
+from radar.channels.common import Context, finish, load_state, save_state
 from radar.search import search_with_retry
 from radar.urls import normalize
 
-WINDOW_DAYS = 7
+UA = {"User-Agent": "Mozilla/5.0 (compatible; embodied-radar/0.1)"}
 
 
-def gold_window(gold: list[dict], run_date: date) -> list[dict]:
-    """Gold items published in [run_date - 7, run_date], both ends included."""
-    start = run_date - timedelta(days=WINDOW_DAYS)
-    return [g for g in gold if start <= g["date"] <= run_date]
+def make_context(run_date: date, state_dir: Path, first_run_date_fetch_max: int) -> Context:
+    session = requests.Session()
+    session.headers.update(UA)
+    token = os.environ.get("GITHUB_TOKEN")
+
+    def get(url: str):
+        headers = {}
+        if token and url.startswith("https://api.github.com"):
+            headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+        return session.get(url, headers=headers, timeout=30)
+
+    def page_date(url: str) -> str | None:
+        try:
+            resp = get(url)
+            if resp.status_code >= 400:
+                return None
+            doc = trafilatura.extract(resp.text, url=resp.url, output_format="json", with_metadata=True)
+        except Exception:  # trafilatura raises on some markup; treat as undated
+            return None
+        return json.loads(doc).get("date") if doc else None
+
+    return Context(run_date, state_dir, get, page_date, first_run_date_fetch_max)
 
 
-def classify_page_date(page_date: str | None, run_date: date) -> str:
-    if not page_date:
-        return "undated"
+STATE_KIND = {"rss": "feeds", "page": "pages"}
+
+
+def channel_key(entity_id: str, channel: dict, index: int) -> str:
+    """Stable state key; `index` counts earlier channels of the same type in this entity."""
+    return f"{STATE_KIND.get(channel['type'], channel['type'])}/{entity_id}" + (f"-{index}" if index else "")
+
+
+def run_channel(channel: dict, ctx: Context, key: str) -> dict:
     try:
-        parsed = date.fromisoformat(page_date[:10])
-    except ValueError:
-        return "undated"
-    return "in_last_7d" if parsed >= run_date - timedelta(days=WINDOW_DAYS) else "older"
+        return COLLECTORS[channel["type"]](channel, ctx, key)
+    except Exception as exc:  # one broken channel must not stop the run
+        return {"status": "failed", "fetched": 0, "new": [], "baseline": 0, "error": type(exc).__name__}
 
 
-def match_gold(item: dict, keys: set[str]) -> str | None:
-    return next((a for a in map(normalize, item["aliases"]) if a in keys), None)
-
-
-def _load_seen(path: Path) -> set[str]:
-    if not path.exists():
-        return set()
-    return {json.loads(line)["key"] for line in path.read_text(encoding="utf-8").splitlines() if line.strip()}
-
-
-def run(domain_dir: str, out_dir: str, state_dir: str, backend: str | None = None) -> dict:
-    domain = config.load(domain_dir)
+def run_search(domain, ctx: Context) -> dict:
+    """Open search finds teams outside the list; results have no dates, so the first run is a baseline."""
     settings = domain.search
-    backend = backend or settings.get("backend", "searxng")
-    max_results = int(settings.get("max_results", 10))
-    retries = int(settings.get("retries", 2))
-    interval = float(settings.get("interval_seconds", 1.0))
-    run_date = date.today()
+    seen = load_state(ctx, "search/queries")
+    keys, new, failures = [], [], 0
+    for query in domain.queries:
+        result = search_with_retry(query, settings.get("backend", "searxng"),
+                                   int(settings.get("max_results", 10)), int(settings.get("retries", 2)))
+        failures += result["error"] is not None
+        for r in result["results"]:
+            if not r["url"].startswith(("http://", "https://")):
+                continue
+            k = normalize(r["url"])
+            keys.append(k)
+            if seen is not None and k not in seen:
+                new.append({"url": r["url"], "key": k, "title": r["title"], "query": query})
+        time.sleep(float(settings.get("interval_seconds", 1.0)))
+    save_state(ctx, "search/queries", keys)
+    out = finish(len(set(keys)), new, len(set(keys)) - len(new), first_run=seen is None)
+    out["failed_queries"] = failures
+    return out
 
-    plan = [(e["id"], e["query"]) for e in domain.entities if e["tier"] != "dormant"]
-    plan += [("open", q) for q in domain.queries]
 
-    errors, per_query, rows = Counter(), [], []
-    failed = empty = 0
-    for source, query in plan:
-        result = search_with_retry(query, backend, max_results, retries)
-        if result["error"]:
-            failed += 1
-            errors[result["error"]] += 1
-        elif not result["results"]:
-            empty += 1
-        per_query.append({"source": source, "query": query, "raw": len(result["results"]), "error": result["error"]})
-        rows += [{**r, "source": source, "query": query} for r in result["results"]]
-        time.sleep(interval)
-
-    control_result = search_with_retry(domain.control["query"], backend, max_results, retries)
-    control_keys = {normalize(r["url"]) for r in control_result["results"] if r["url"]}
-    control_gold = next(g for g in domain.gold if g["id"] == domain.control["gold"])
-
-    seen = _load_seen(Path(state_dir) / "seen.jsonl")
-    normalized = [r | {"key": normalize(r["url"])} for r in rows if r["url"].startswith(("http://", "https://"))]
-    candidates: dict[str, dict] = {}
-    for r in normalized:
-        if r["key"] in seen:
+def check_gold(gold: list[dict], items: dict, run_date: date) -> list[dict]:
+    rows = []
+    for g in gold:
+        if not (run_date.toordinal() - 7 <= g["date"].toordinal() <= run_date.toordinal()):
             continue
-        entry = candidates.setdefault(r["key"], {"key": r["key"], "url": r["url"], "title": r["title"],
-                                                  "snippet": r["snippet"], "sources": []})
-        if r["source"] not in entry["sources"]:
-            entry["sources"].append(r["source"])
-    for q in per_query:
-        q["unique"] = len({r["key"] for r in normalized if r["query"] == q["query"] and r["key"] in candidates})
+        aliases = {normalize(a) for a in g["aliases"]}
+        hits = [items[k] for k in aliases if k in items]
+        rows.append({"id": g["id"], "hit": bool(hits), "expect": g.get("expect"),
+                     "via": sorted({(s["entity"], s["type"]) for h in hits for s in h["sources"]})})
+    return rows
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        for entry, page in zip(candidates.values(), pool.map(fetch, [c["url"] for c in candidates.values()])):
-            entry["fetch"] = page
 
-    keys = set(candidates)
-    gold = []
-    for item in gold_window(domain.gold, run_date):
-        hit = match_gold(item, keys)
-        page = candidates[hit]["fetch"] if hit else {}
-        gold.append({"id": item["id"], "hit": hit is not None, "url": hit,
-                     "chars": page.get("chars", 0), "page_date": page.get("date")})
+def run(domain_dir: str, out_dir: str, state_dir: str, gold_path: str, run_date: date | None = None) -> dict:
+    domain = config.load(domain_dir)
+    run_date = run_date or date.today()
+    ctx = make_context(run_date, Path(state_dir), int(domain.page.get("first_run_date_fetch_max", 12)))
 
-    fetched = [c["fetch"] for c in candidates.values()]
+    entities, items = {}, {}
+    for entity in domain.entities:
+        if entity["tier"] == "dormant":
+            continue
+        rows, per_type = [], {}
+        for channel in entity["channels"]:
+            target = channel.get("url") or channel.get("org")
+            index = per_type.get(channel["type"], 0)
+            per_type[channel["type"]] = index + 1
+            if channel.get("broken"):
+                rows.append({"type": channel["type"], "target": target, "status": "broken", "error": channel["broken"],
+                             "fetched": 0, "new": [], "baseline": 0})
+                continue
+            result = run_channel(channel, ctx, channel_key(entity["id"], channel, index))
+            rows.append({"type": channel["type"], "target": target, **result})
+            for item in result["new"]:
+                merged = items.setdefault(item["key"], {**item, "sources": []})
+                merged["sources"].append({"entity": entity["id"], "type": channel["type"]})
+        entities[entity["id"]] = {"direction": entity["direction"], "channels": rows}
+
+    search = run_search(domain, ctx) if domain.queries else None
+    gold = yaml.safe_load(Path(gold_path).read_text(encoding="utf-8")) if Path(gold_path).exists() else []
+
+    all_rows = [r for e in entities.values() for r in e["channels"]]
+    by_type = {}
+    for r in all_rows:
+        t = by_type.setdefault(r["type"], {"channels": 0, "failed": 0, "broken": 0, "no_update": 0, "updated": 0, "new": 0})
+        t["channels"] += 1
+        t[r["status"]] += 1
+        t["new"] += len(r["new"])
     summary = {
         "run_date": run_date.isoformat(),
-        "backend": backend,
-        "requests": {"total": len(plan), "failed": failed, "empty": empty, "errors": dict(errors)},
-        "stages": {"raw": len(rows), "normalized": len(normalized), "unique": len(candidates)},
-        "per_query": per_query,
-        "fetch": {
-            "attempted": len(fetched),
-            "ok": sum(f["status"] == "ok" for f in fetched),
-            "thin": sum(f["status"] == "thin" for f in fetched),
-            "failed": sum(f["status"] not in ("ok", "thin") for f in fetched),
-            "reasons": dict(Counter(f["status"] for f in fetched if f["status"] != "ok")),
-        },
-        "page_dates": dict(Counter(classify_page_date(f.get("date"), run_date) for f in fetched)),
-        "control": {"returned": len(control_result["results"]), "error": control_result["error"],
-                    "matched_g1": match_gold(control_gold, control_keys)},
-        "gold": gold,
+        "window": {"start": ctx.window_start.isoformat(), "end": run_date.isoformat()},
+        "totals": {"channels": len(all_rows), "failed": sum(r["status"] == "failed" for r in all_rows),
+                   "broken": sum(r["status"] == "broken" for r in all_rows), "new_items": len(items)},
+        "by_type": by_type,
+        "entities": entities,
+        "search": search and {k: v for k, v in search.items() if k != "new"} | {"new": len(search["new"])},
+        "gold": check_gold(gold, items, run_date),
     }
 
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    with open(out / "candidates.jsonl", "w", encoding="utf-8") as f:
-        for entry in candidates.values():
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    with open(out / "items.jsonl", "w", encoding="utf-8") as f:
+        for item in items.values():
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     return summary
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Collect last week's candidates for a domain")
+    parser = argparse.ArgumentParser(description="Collect this week's new items for a domain")
     parser.add_argument("--domain", default="embodied")
     parser.add_argument("--out", default=None, help="default: out/<domain>/latest")
     parser.add_argument("--state", default=None, help="default: state/<domain>")
-    parser.add_argument("--backend", default=None)
+    parser.add_argument("--gold", default=None, help="default: evals/<domain>/gold.yaml")
     args = parser.parse_args()
     summary = run(f"domains/{args.domain}", args.out or f"out/{args.domain}/latest",
-                  args.state or f"state/{args.domain}", args.backend)
-    print(json.dumps({k: summary[k] for k in ("run_date", "requests", "stages", "fetch", "control", "gold")},
-                     ensure_ascii=False))
+                  args.state or f"state/{args.domain}", args.gold or f"evals/{args.domain}/gold.yaml")
+    print(json.dumps({k: summary[k] for k in ("run_date", "totals", "by_type", "gold")}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

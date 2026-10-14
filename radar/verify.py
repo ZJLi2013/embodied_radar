@@ -8,61 +8,52 @@ from pathlib import Path
 import yaml
 
 
-def check_probe(report: dict) -> list[str]:
-    problems = []
-    for q in report["queries"]:
-        if q["error"]:
-            problems.append(f"{q['kind']} query raised: {q['error']}")
-        elif q["kind"] != "control" and q["count"] < 1:
-            problems.append(f"{q['kind']} query returned 0 results")
-    if not report["control"]["matched_g1"]:
-        problems.append("control query did not return any G1 alias")
-    for item in report["gold"]:
-        best = max((p["chars"] for p in item["pages"]), default=0)
-        if best < 1000:
-            problems.append(f"{item['id']}: no alias fetched with >= 1000 chars (best {best})")
-    return problems
-
-
-def check_collect(report: dict, gold_path: str = "domains/embodied/gold.yaml") -> list[str]:
+def check_channels(report: dict, run_meta: dict | None, gold_path: str = "evals/embodied/gold.yaml") -> list[str]:
     problems = []
     run_date = date.fromisoformat(report["run_date"])
+    start = run_date - timedelta(days=7)
     gold = yaml.safe_load(Path(gold_path).read_text(encoding="utf-8"))
-    expected = {g["id"] for g in gold if run_date - timedelta(days=7) <= g["date"] <= run_date}
-    if not expected:
-        problems.append(f"no gold item falls in [{run_date - timedelta(days=7)}, {run_date}]; run between 10-13 and 10-19")
+    if not any(start <= g["date"] <= run_date for g in gold):
+        problems.append(f"no gold item falls in [{start}, {run_date}]")
 
-    req = report["requests"]
-    if req["failed"] > 0.2 * req["total"]:
-        problems.append(f"failed requests {req['failed']}/{req['total']} > 20% ({req['errors']})")
-    if report["stages"]["unique"] < 30:
-        problems.append(f"unique candidates {report['stages']['unique']} < 30 (stages {report['stages']})")
-    f = report["fetch"]
-    if f["attempted"] == 0 or f["ok"] < 0.7 * f["attempted"]:
-        problems.append(f"fetch ok {f['ok']}/{f['attempted']} < 70% ({f['reasons']})")
+    if not run_meta or run_meta.get("conclusion") != "success":
+        problems.append(f"workflow (incl. pytest) did not succeed: {run_meta and run_meta.get('conclusion')}")
 
-    found = {g["id"]: g for g in report["gold"]}
-    for gid in sorted(expected):
-        item = found.get(gid)
-        if item is None:
-            problems.append(f"{gid}: in the window but missing from summary.gold")
-        elif not item["hit"]:
-            problems.append(f"{gid}: not among candidates")
-        elif item["chars"] < 1000:
-            problems.append(f"{gid}: hit {item['url']} but body {item['chars']} chars < 1000")
+    rows = [(eid, r) for eid, e in report["entities"].items() for r in e["channels"]]
+    bad = [f"{eid}:{r['type']}:{r['target']}:{r['status']}:{r['error']}" for eid, r in rows
+           if r["status"] in ("failed", "broken")]
+    if len(bad) > 0.1 * len(rows):
+        problems.append(f"failed+broken {len(bad)}/{len(rows)} > 10%: {bad}")
+    for eid, e in report["entities"].items():
+        if not any(r["status"] in ("no_update", "updated") for r in e["channels"]):
+            problems.append(f"{eid}: no channel returned data")
+
+    for eid, r in rows:
+        if r["type"] != "page" or r["status"] == "failed":
+            continue
+        if not r.get("snapshot") or not Path(r["snapshot"]).exists():
+            problems.append(f"{eid}: page {r['target']} wrote no snapshot ({r.get('snapshot')})")
+        if r.get("first_run"):
+            for item in r["new"]:
+                d = item.get("page_date")
+                if not d or not start <= date.fromisoformat(d[:10]) <= run_date:
+                    problems.append(f"{eid}: first-run page item {item['url']} has page date {d} outside window")
+
+    for g in report["gold"]:
+        if not g["hit"]:
+            problems.append(f"{g['id']}: not among new items")
+        elif g.get("expect") and [g["expect"]["entity"], g["expect"]["type"]] not in [list(v) for v in g["via"]]:
+            problems.append(f"{g['id']}: hit via {g['via']}, expected {g['expect']}")
     return problems
 
 
 def main(kind: str, path: str) -> int:
+    if kind != "channels":
+        raise SystemExit(f"unknown check {kind!r}")
     report = json.loads(Path(path).read_text(encoding="utf-8"))
-    problems = {"probe": check_probe, "collect": check_collect}[kind](report)
-    if kind == "probe":
-        for item in report.get("gold", []):
-            dates = [p["date"] for p in item["pages"] if p["date"]]
-            print(f"{item['id']}: gold date {item['date']}, page dates {dates or 'undated'}")
-    else:
-        print(f"run {report['run_date']} backend {report['backend']} stages {report['stages']} "
-              f"page_dates {report['page_dates']} control {report['control']}")
+    meta_path = Path(path).with_name("run.json")
+    problems = check_channels(report, json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else None)
+    print(f"run {report['run_date']} totals {report['totals']} by_type {report['by_type']} gold {report['gold']}")
     for line in problems:
         print(f"FAIL {line}")
     print("PASS" if not problems else "FAIL")

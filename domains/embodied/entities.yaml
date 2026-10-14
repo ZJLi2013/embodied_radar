@@ -1,23 +1,165 @@
-# Tracked teams. tier: core (weekly) / trial (weekly, auto-added) / dormant (every 4 weeks).
-- {id: physical-intelligence, name: Physical Intelligence, tier: core, query: '"Physical Intelligence" robot'}
-- {id: figure, name: Figure AI, tier: core, query: '"Figure AI" robot'}
-- {id: 1x, name: 1X Technologies, tier: core, query: '"1X Technologies" robot'}
-- {id: skild-ai, name: Skild AI, tier: core, query: '"Skild AI" robot'}
-- {id: generalist-ai, name: Generalist AI, tier: core, query: '"Generalist AI" robot'}
-- {id: tesla-optimus, name: Tesla Optimus, tier: core, query: '"Tesla Optimus" robot'}
-- {id: boston-dynamics, name: Boston Dynamics, tier: core, query: '"Boston Dynamics" robot'}
-- {id: agility, name: Agility Robotics, tier: core, query: '"Agility Robotics" robot'}
-- {id: apptronik, name: Apptronik, tier: core, query: '"Apptronik" robot'}
-- {id: unitree, name: Unitree, tier: core, query: '"Unitree" robot'}
-- {id: agibot, name: AgiBot, tier: core, query: '"AgiBot" robot'}
-- {id: world-labs, name: World Labs, tier: core, query: '"World Labs" robot'}
-- {id: deepmind-robotics, name: Google DeepMind Robotics, tier: core, query: '"Google DeepMind" robot'}
-- {id: nvidia-gear, name: NVIDIA GEAR / Isaac, tier: core, query: '"NVIDIA" robot'}
-- {id: meta-fair-robotics, name: Meta FAIR Robotics, tier: core, query: '"Meta FAIR" robot'}
-- {id: openai-robotics, name: OpenAI Robotics, tier: core, query: '"OpenAI" robot'}
-- {id: tri, name: Toyota Research Institute, tier: core, query: '"Toyota Research Institute" robot'}
-- {id: hf-lerobot, name: Hugging Face LeRobot, tier: core, query: '"LeRobot" robot'}
-- {id: stanford, name: Stanford SAIL / IRIS, tier: core, query: '"Stanford" robot'}
-- {id: berkeley, name: Berkeley BAIR / RAIL, tier: core, query: '"Berkeley" robot'}
-- {id: cmu-ri, name: CMU Robotics Institute, tier: core, query: '"CMU" robot'}
-- {id: mit-csail, name: MIT CSAIL, tier: core, query: '"MIT CSAIL" robot'}
+# Teams tracked by the radar. Add or remove a team by editing this list only.
+# direction: brain (models / algorithms) or data_sim (data and simulation infrastructure).
+# channel types: rss {url} · page {url, link_pattern?} · github {org} · hf {org}
+# A channel that keeps failing gets `broken: <reason>` and is skipped.
+
+- id: deepmind-robotics
+  name: Google DeepMind Robotics
+  direction: brain
+  tier: core
+  channels:
+    - {type: rss, url: "https://deepmind.google/blog/rss.xml"}
+    - {type: rss, url: "https://developers.googleblog.com/feeds/posts/default"}
+    - {type: page, url: "https://deepmind.google/models/gemini-robotics/"}
+
+- id: nvidia-gear
+  name: NVIDIA GEAR
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://research.nvidia.com/labs/gear/"}
+    - {type: rss, url: "https://developer.nvidia.com/blog/category/robotics/feed/"}
+    - {type: hf, org: nvidia}
+
+- id: nvidia-srl
+  name: NVIDIA Seattle Robotics Lab
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://research.nvidia.com/labs/srl/"}
+    - {type: github, org: NVlabs}
+
+- id: openai
+  name: OpenAI (world models / robotics)
+  direction: brain
+  tier: core
+  channels:
+    - {type: rss, url: "https://openai.com/news/rss.xml"}
+    - {type: github, org: openai}
+
+- id: meta-fair
+  name: Meta FAIR
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://ai.meta.com/blog/"}
+    - {type: hf, org: facebook}
+    - {type: github, org: facebookresearch}
+
+- id: msr
+  name: Microsoft Research
+  direction: brain
+  tier: core
+  channels:
+    - {type: rss, url: "https://www.microsoft.com/en-us/research/feed/"}
+
+- id: amazon-far
+  name: Amazon FAR
+  direction: brain
+  tier: core
+  channels:
+    - {type: rss, url: "https://www.amazon.science/index.rss"}
+    - {type: github, org: amazon-far}
+
+- id: tri
+  name: Toyota Research Institute
+  direction: brain
+  tier: core
+  channels:
+    - {type: rss, url: "https://medium.com/feed/toyotaresearch"}
+    - {type: github, org: ToyotaResearchInstitute}
+    - {type: hf, org: TRI-ML}
+
+- id: physical-intelligence
+  name: Physical Intelligence
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://www.pi.website/blog"}
+    - {type: github, org: Physical-Intelligence}
+
+- id: skild
+  name: Skild AI
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://www.skild.ai/blogs"}
+
+- id: generalist
+  name: Generalist AI
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://generalistai.com/blog"}
+
+- id: field-ai
+  name: Field AI
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://www.fieldai.com/news"}
+
+- id: dyna
+  name: Dyna Robotics
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://www.dyna.co/research"}
+
+- id: world-labs
+  name: World Labs
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://www.worldlabs.ai/blog"}
+    - {type: github, org: worldlabsai}
+
+- id: sunday
+  name: Sunday
+  direction: brain
+  tier: core
+  channels:
+    - {type: page, url: "https://www.sunday.ai/blog"}
+
+- id: nvidia-cosmos
+  name: NVIDIA Cosmos
+  direction: data_sim
+  tier: core
+  channels:
+    - {type: github, org: nvidia-cosmos}
+
+- id: nvidia-isaac
+  name: NVIDIA Isaac Lab / Sim
+  direction: data_sim
+  tier: core
+  channels:
+    - {type: github, org: isaac-sim}
+
+- id: lerobot
+  name: Hugging Face LeRobot
+  direction: data_sim
+  tier: core
+  channels:
+    - {type: rss, url: "https://huggingface.co/blog/feed.xml"}
+    - {type: hf, org: lerobot}
+
+- id: genesis
+  name: Genesis
+  direction: data_sim
+  tier: core
+  channels:
+    - {type: github, org: Genesis-Embodied-AI}
+
+- id: maniskill
+  name: ManiSkill / SAPIEN (Hillbot)
+  direction: data_sim
+  tier: core
+  channels:
+    - {type: github, org: haosulab}
+
+- id: scale-ai
+  name: Scale AI
+  direction: data_sim
+  tier: core
+  channels:
+    - {type: page, url: "https://scale.com/blog"}

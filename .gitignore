@@ -4,8 +4,10 @@ __pycache__/
 *.py[cod]
 .venv/
 .cache/
+*.egg-info/
 
 # agent-loop local state and harness runtime (internal hosts, keys)
 .agent-loop/
 .harness/
 out/
+state/
