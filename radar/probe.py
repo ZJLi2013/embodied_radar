@@ -1,6 +1,7 @@
 """t1 probe: is the search backend usable from this machine, and can gold pages be fetched?"""
 
 import json
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -19,12 +20,26 @@ QUERIES = [
 ]
 PROBE_GOLD = ("G1", "G2")
 UA = {"User-Agent": "Mozilla/5.0 (compatible; embodied-radar/0.1)"}
+BACKEND = os.environ.get("RADAR_BACKEND", "ddgs")
+SEARXNG_URL = os.environ.get("SEARXNG_URL", "http://localhost:8080")
+
+
+def _search_urls(query: str, max_results: int) -> list[str]:
+    if BACKEND == "searxng":
+        resp = requests.get(
+            f"{SEARXNG_URL}/search",
+            params={"q": query, "format": "json", "time_range": "week", "language": "en"},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return [r.get("url", "") for r in resp.json().get("results", [])][:max_results]
+    return [r.get("href", "") for r in DDGS().text(query, timelimit="w", max_results=max_results) or []]
 
 
 def search(query: str, max_results: int) -> dict:
     try:
-        results = DDGS().text(query, timelimit="w", max_results=max_results) or []
-        return {"count": len(results), "error": None, "urls": [r.get("href", "") for r in results]}
+        urls = _search_urls(query, max_results)
+        return {"count": len(urls), "error": None, "urls": urls}
     except Exception as exc:  # backend errors are the measurement here, not a crash
         return {"count": 0, "error": f"{type(exc).__name__}: {exc}"[:300], "urls": []}
 
@@ -69,7 +84,7 @@ def main(domain_dir: str, out_path: str) -> None:
 
     report = {
         "run_date": date.today().isoformat(),
-        "backend": "ddgs",
+        "backend": BACKEND,
         "queries": queries,
         "control": {"returned": control["count"], "matched_g1": control_matched},
         "gold": gold_pages,

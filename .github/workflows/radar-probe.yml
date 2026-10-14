@@ -2,6 +2,12 @@ name: radar-probe
 
 on:
   workflow_dispatch:
+    inputs:
+      backend:
+        description: Search backend
+        type: choice
+        options: [ddgs, searxng]
+        default: ddgs
 
 permissions:
   contents: read
@@ -10,6 +16,8 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      RADAR_BACKEND: ${{ inputs.backend }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,6 +25,16 @@ jobs:
           python-version: "3.12"
       - run: pip install ".[test]"
       - run: pytest -q
+      - if: inputs.backend == 'searxng'
+        name: Start SearXNG
+        run: |
+          docker run -d --name searxng -p 8080:8080 -v "$PWD/ci/searxng:/etc/searxng" searxng/searxng:latest
+          for i in $(seq 1 30); do
+            curl -sf "http://localhost:8080/search?q=robot&format=json" > /dev/null && exit 0
+            sleep 3
+          done
+          docker logs searxng | tail -50
+          exit 1
       - run: python -m radar.probe domains/embodied out/probe/probe.json
       - if: always()
         uses: actions/upload-artifact@v4
