@@ -1,0 +1,35 @@
+# Works brought in by hand. A candidate hits an item when its normalized URL equals any alias.
+# approx: the publication day is only known to the month; the date is a placeholder inside that month.
+- id: G1
+  title: Gemini 4 Argon for Robotics
+  date: 2026-10-13
+  aliases:
+    - developers.googleblog.com/gemini-4-argon-for-robotics
+    - deepmind.google/blog/gemini-4-argon-for-robotics
+- id: G2
+  title: EmbodiedRSI
+  date: 2026-10-07
+  aliases:
+    - geeksongs.github.io/agentic_robotics
+    - arxiv.org/abs/2610.10498
+    - huggingface.co/papers/2610.10498
+- id: G3
+  title: HarnessPAI
+  date: 2026-09-29
+  approx: true
+  aliases:
+    - darwin-agent.github.io/HarnessPAI
+    - arxiv.org/abs/2609.29166
+- id: G4
+  title: LLM-as-Policy / RoboProbe
+  date: 2026-09-28
+  approx: true
+  aliases:
+    - arxiv.org/abs/2609.24170
+    - github.com/RoboProbe/RoboProbe
+- id: G5
+  title: Agent as Policy (AGP)
+  date: 2026-09-15
+  approx: true
+  aliases:
+    - arxiv.org/abs/2609.12541

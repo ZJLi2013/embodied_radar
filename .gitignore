@@ -8,3 +8,4 @@ __pycache__/
 # agent-loop local state and harness runtime (internal hosts, keys)
 .agent-loop/
 .harness/
+out/
