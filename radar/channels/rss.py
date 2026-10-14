@@ -9,7 +9,8 @@ def collect(channel: dict, ctx: Context, key: str) -> dict:
     if resp.status_code >= 400:
         return failed(f"http_{resp.status_code}")
     entries = [e for e in feedparser.parse(resp.content).entries if e.get("link")]
-    seen = load_state(ctx, key)
+    state = load_state(ctx, key)
+    seen = None if state is None else set(state)
 
     new, baseline, keys = [], 0, []
     for e in entries:
@@ -23,5 +24,5 @@ def collect(channel: dict, ctx: Context, key: str) -> dict:
                         "published": published.isoformat() if published else None})
         else:
             baseline += 1
-    save_state(ctx, key, keys)
+    save_state(ctx, key, sorted(set(keys)))
     return finish(len(entries), new, baseline, first_run=seen is None)

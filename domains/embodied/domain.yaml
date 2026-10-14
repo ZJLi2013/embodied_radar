@@ -14,9 +14,9 @@ scope:
   business:
     - 融资、合作与政府项目、人事、产品上市与营销、市场报告、活动、赞助内容
 
-# Page channels fetch each new link once on their first run to read its date; capped per page.
+# Page-date fetches per run, shared by all page channels; links beyond it stay pending for later runs.
 page:
-  first_run_date_fetch_max: 12
+  date_fetch_budget: 150
 
 # Supplementary open search for teams outside the list (SearXNG in the workflow).
 search:

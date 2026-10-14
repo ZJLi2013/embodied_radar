@@ -28,11 +28,24 @@ def check_channels(report: dict, run_meta: dict | None, gold_path: str = "evals/
         if not any(r["status"] in ("no_update", "updated") for r in e["channels"]):
             problems.append(f"{eid}: no channel returned data")
 
+    fetches = report["page_date_fetches"]
+    if fetches["used"] > fetches["budget"]:
+        problems.append(f"page date fetches {fetches['used']} > budget {fetches['budget']}")
+
     for eid, r in rows:
         if r["type"] != "page" or r["status"] == "failed":
             continue
         if not r.get("snapshot") or not Path(r["snapshot"]).exists():
             problems.append(f"{eid}: page {r['target']} wrote no snapshot ({r.get('snapshot')})")
+        else:
+            state = json.loads(Path(r["snapshot"]).read_text(encoding="utf-8"))
+            seen, pending = set(state["seen"]), set(state["pending"])
+            if seen & pending:
+                problems.append(f"{eid}: {len(seen & pending)} links are both seen and pending")
+            if missing := set(r["links"]) - seen - pending:
+                problems.append(f"{eid}: {len(missing)} current links in neither seen nor pending")
+            if len(pending) != r["pending"]:
+                problems.append(f"{eid}: state has {len(pending)} pending, summary says {r['pending']}")
         if r.get("first_run"):
             for item in r["new"]:
                 d = item.get("page_date")

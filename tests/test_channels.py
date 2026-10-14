@@ -28,14 +28,14 @@ class Resp:
         return json.loads(self.content)
 
 
-def ctx(tmp_path, routes: dict, dates: dict | None = None) -> Context:
+def ctx(tmp_path, routes: dict, dates: dict | None = None, run_date: date = RUN, budget: int = 150) -> Context:
     def get(url):
         body = routes.get(url)
         if body is None:
             return Resp(b"not found", 404, url)
         return Resp(body if isinstance(body, bytes) else (FIX / body).read_bytes(), 200, url)
 
-    return Context(RUN, tmp_path, get, lambda url: (dates or {}).get(normalize(url)))
+    return Context(run_date, tmp_path, get, lambda url: (dates or {}).get(normalize(url)), budget)
 
 
 def g1_article_date() -> str:
@@ -76,21 +76,108 @@ SUNDAY_LINKS = {f"sunday.ai/blog/{s}" for s in ("act-2-preview", "no-robot-data"
 SUNDAY_DATES = {k: d for k, d in zip(sorted(SUNDAY_LINKS), ("2025-11-14", "2025-11-19", "2025-11-14"))}
 
 
+NEXT = date(2026, 10, 21)
+
+
+def read_state(out):
+    return json.loads(Path(out["snapshot"]).read_text(encoding="utf-8"))
+
+
+def write_state(tmp_path, name, seen, pending=None):
+    path = tmp_path / "pages" / f"{name}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"seen": sorted(seen), "pending": pending or {}}), encoding="utf-8")
+
+
+def list_page(slugs) -> bytes:
+    return "".join(f'<a href="/blog/{s}">{s}</a>' for s in slugs).encode()
+
+
 def test_page_first_run_old_links_are_baseline(tmp_path):
     out = page.collect({"url": SUNDAY}, ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, SUNDAY_DATES), "pages/sunday")
     assert out["status"] == "no_update" and out["first_run"]
-    assert out["fetched"] == out["baseline"] == 3
-    assert json.loads(Path(out["snapshot"]).read_text(encoding="utf-8")) == sorted(SUNDAY_LINKS)
+    assert out["fetched"] == out["baseline"] == 3 and out["pending"] == 0
+    assert read_state(out) == {"seen": sorted(SUNDAY_LINKS), "pending": {}}
 
 
 def test_page_later_run_reports_links_missing_from_snapshot(tmp_path):
-    c = ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, SUNDAY_DATES)
-    snapshot = tmp_path / "pages" / "sunday.json"
-    snapshot.parent.mkdir(parents=True)
-    snapshot.write_text(json.dumps(sorted(SUNDAY_LINKS)[:2]), encoding="utf-8")
-    out = page.collect({"url": SUNDAY}, c, "pages/sunday")
+    write_state(tmp_path, "sunday", sorted(SUNDAY_LINKS)[:2])
+    out = page.collect({"url": SUNDAY}, ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, SUNDAY_DATES), "pages/sunday")
     assert out["status"] == "updated" and not out["first_run"]
     assert [i["key"] for i in out["new"]] == [sorted(SUNDAY_LINKS)[2]]
+
+
+def test_page_over_budget_links_stay_pending(tmp_path):
+    out = page.collect({"url": SUNDAY}, ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, SUNDAY_DATES, budget=2), "pages/sunday")
+    state = read_state(out)
+    assert len(state["seen"]) == 2 and out["pending"] == 1 and out["date_fetches"] == 2
+    [(key, entry)] = state["pending"].items()
+    assert key not in state["seen"] and entry["since"] == "2026-10-07"
+
+
+@pytest.mark.parametrize("page_date, is_new", [("2026-10-10", True), ("2025-11-14", False), ("2026-10-22", False)])
+def test_pending_link_is_judged_against_its_own_window(tmp_path, page_date, is_new):
+    first = page.collect({"url": SUNDAY}, ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, SUNDAY_DATES, budget=2), "pages/sunday")
+    [key] = read_state(first)["pending"]
+    out = page.collect({"url": SUNDAY}, ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, {key: page_date}, run_date=NEXT),
+                       "pages/sunday")
+    assert [(i["key"], i["late"]) for i in out["new"]] == ([(key, True)] if is_new else [])
+    assert key in read_state(out)["seen"] and out["pending"] == 0
+
+
+def test_pending_link_waits_while_budget_is_spent(tmp_path):
+    page.collect({"url": SUNDAY}, ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, SUNDAY_DATES, budget=2), "pages/sunday")
+    out = page.collect({"url": SUNDAY}, ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, run_date=NEXT, budget=0), "pages/sunday")
+    assert out["pending"] == 1 and not out["new"]
+    assert [e["since"] for e in read_state(out)["pending"].values()] == ["2026-10-07"]
+
+
+def test_pending_link_that_left_the_page_is_still_checked(tmp_path):
+    gone = "sunday.ai/blog/gone"
+    write_state(tmp_path, "sunday", SUNDAY_LINKS, {gone: {"url": "https://www.sunday.ai/blog/gone", "since": "2026-10-07"}})
+    out = page.collect({"url": SUNDAY}, ctx(tmp_path, {SUNDAY: "sunday_blog.html"}, {gone: "2026-10-10"}, run_date=NEXT),
+                       "pages/sunday")
+    assert [(i["key"], i["late"]) for i in out["new"]] == [(gone, True)]
+    assert gone in read_state(out)["seen"] and out["pending"] == 0
+
+
+def test_seen_link_that_reappears_is_not_new(tmp_path):
+    url, slugs = "https://example.com/blog", ["a", "b", "c"]
+    write_state(tmp_path, "ex", {f"example.com/blog/{s}" for s in slugs})
+    week2 = page.collect({"url": url}, ctx(tmp_path, {url: list_page(slugs[:2])}, run_date=NEXT), "pages/ex")
+    week3 = page.collect({"url": url}, ctx(tmp_path, {url: list_page(slugs)}, run_date=date(2026, 10, 28)), "pages/ex")
+    assert not week2["new"] and not week3["new"]
+    assert len(read_state(week3)["seen"]) == 3
+
+
+LONG = "https://example.com/blog"
+SLUGS = [f"p{i:02d}" for i in range(1, 16)]
+LONG_DATES = {f"example.com/blog/{s}": ("2026-10-12" if s == "p13" else "2025-11-14") for s in SLUGS}
+
+
+def test_long_page_within_budget_checks_every_link(tmp_path):
+    out = page.collect({"url": LONG}, ctx(tmp_path, {LONG: list_page(SLUGS)}, LONG_DATES), "pages/long")
+    assert out["date_fetches"] == 15 and out["pending"] == 0
+    assert [i["key"] for i in out["new"]] == ["example.com/blog/p13"]
+    assert len(read_state(out)["seen"]) == 15
+
+
+def test_long_page_over_budget_reports_p13_on_next_run(tmp_path):
+    routes = {LONG: list_page(SLUGS)}
+    first = page.collect({"url": LONG}, ctx(tmp_path, routes, LONG_DATES, budget=12), "pages/long")
+    state = read_state(first)
+    assert state["seen"] == [f"example.com/blog/{s}" for s in SLUGS[:12]]
+    assert sorted(state["pending"]) == [f"example.com/blog/{s}" for s in SLUGS[12:]] and not first["new"]
+    out = page.collect({"url": LONG}, ctx(tmp_path, routes, LONG_DATES, run_date=NEXT), "pages/long")
+    assert [(i["key"], i["late"]) for i in out["new"]] == [("example.com/blog/p13", True)]
+
+
+def test_date_budget_is_shared_across_page_channels(tmp_path):
+    c = ctx(tmp_path, {SUNDAY: "sunday_blog.html", LONG: list_page(SLUGS)}, SUNDAY_DATES, budget=3)
+    sunday = page.collect({"url": SUNDAY}, c, "pages/sunday")
+    long = page.collect({"url": LONG}, c, "pages/long")
+    assert sunday["date_fetches"] == 3 and long["date_fetches"] == 0 and long["pending"] == 15
+    assert c.date_fetches == 3
 
 
 def test_page_link_pattern_selects_cross_site_g1(tmp_path):

@@ -17,7 +17,8 @@ class Context:
     state_dir: Path
     get: Callable  # url -> response with status_code, content, text, json()
     page_date: Callable[[str], str | None]
-    first_run_date_fetch_max: int = 12
+    date_fetch_budget: int = 150
+    date_fetches: int = 0
 
     @property
     def window_start(self) -> date:
@@ -25,6 +26,12 @@ class Context:
 
     def in_window(self, day: date | None) -> bool:
         return day is not None and self.window_start <= day <= self.run_date
+
+    def take_date_fetches(self, wanted: int) -> int:
+        """Reserve up to `wanted` page-date fetches from the budget shared by all page channels in this run."""
+        granted = max(0, min(wanted, self.date_fetch_budget - self.date_fetches))
+        self.date_fetches += granted
+        return granted
 
 
 def to_date(value) -> date | None:
@@ -48,16 +55,16 @@ def state_file(ctx: Context, key: str) -> Path:
     return ctx.state_dir / kind / f"{re.sub(r'[^A-Za-z0-9_.-]+', '_', name)}.json"
 
 
-def load_state(ctx: Context, key: str) -> set[str] | None:
+def load_state(ctx: Context, key: str):
     """None means the channel has never run: its first run sets the baseline."""
     path = state_file(ctx, key)
-    return set(json.loads(path.read_text(encoding="utf-8"))) if path.exists() else None
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
-def save_state(ctx: Context, key: str, keys) -> None:
+def save_state(ctx: Context, key: str, state) -> None:
     path = state_file(ctx, key)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(sorted(set(keys)), ensure_ascii=False, indent=0), encoding="utf-8")
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=0), encoding="utf-8")
 
 
 def finish(fetched: int, new: list[dict], baseline: int, **extra) -> dict:

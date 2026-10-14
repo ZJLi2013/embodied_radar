@@ -1,5 +1,6 @@
 import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 from urllib.parse import urljoin, urlsplit
 
 from radar.channels.common import Context, failed, finish, load_state, save_state, state_file, to_date
@@ -28,33 +29,50 @@ def extract_links(html: str, base: str, pattern: str) -> dict[str, str]:
 
 
 def collect(channel: dict, ctx: Context, key: str) -> dict:
+    """State is {"seen": [key], "pending": {key: {"url", "since"}}}.
+
+    `seen` keeps every judged link, also after it leaves the page. `pending` holds links whose date has
+    not been fetched yet; one counts as new once fetched if its date falls in [since, run_date].
+    """
     resp = ctx.get(channel["url"])
     if resp.status_code >= 400:
         return failed(f"http_{resp.status_code}")
     links = extract_links(resp.text, channel["url"], channel.get("link_pattern") or default_pattern(channel["url"]))
-    snapshot = load_state(ctx, key)
+    if not links:
+        return failed("no_links")
+    state = load_state(ctx, key)
+    if state is not None and not isinstance(state, dict):
+        raise ValueError(f"page state {key} is not an object")
+    first_run = state is None
+    seen = set(state["seen"]) if state else set()
+    pending = dict(state["pending"]) if state else {}
+    since = ctx.window_start.isoformat()
 
-    new, baseline, capped = [], 0, 0
-    if snapshot is not None:
-        for link_key, url in links.items():
-            if link_key in snapshot:
-                baseline += 1
-            else:
-                new.append({"url": url, "key": link_key, "title": "", "page_date": None})
-    else:
-        # First run: only a link whose own page carries a date inside the window counts as new.
-        ordered = list(links.items())
-        to_fetch = ordered[: ctx.first_run_date_fetch_max]
-        capped = len(ordered) - len(to_fetch)
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            dates = list(pool.map(lambda item: ctx.page_date(item[1]), to_fetch))
-        for (link_key, url), page_date in zip(to_fetch, dates):
-            if ctx.in_window(to_date(page_date)):
-                new.append({"url": url, "key": link_key, "title": "", "page_date": page_date})
-            else:
-                baseline += 1
-        baseline += capped
+    new = []
+    for link_key, url in links.items():
+        if link_key in seen or link_key in pending:
+            continue
+        if first_run:
+            pending[link_key] = {"url": url, "since": since}
+        else:
+            new.append({"url": url, "key": link_key, "title": "", "page_date": None})
+            seen.add(link_key)
 
-    save_state(ctx, key, links)
-    return finish(len(links), new, baseline, first_run=snapshot is None,
-                  snapshot=state_file(ctx, key).as_posix(), date_fetch_capped=capped)
+    queue = sorted(pending.items(), key=lambda kv: kv[1]["since"])
+    queue = queue[: ctx.take_date_fetches(len(queue))]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        dates = list(pool.map(lambda kv: ctx.page_date(kv[1]["url"]), queue))
+    for (link_key, entry), page_date in zip(queue, dates):
+        del pending[link_key]
+        seen.add(link_key)
+        day = to_date(page_date)
+        if day and date.fromisoformat(entry["since"]) <= day <= ctx.run_date:
+            new.append({"url": entry["url"], "key": link_key, "title": "", "page_date": page_date,
+                        "late": entry["since"] != since})
+
+    save_state(ctx, key, {"seen": sorted(seen), "pending": pending})
+    new_keys = {i["key"] for i in new}
+    baseline = sum(k in seen and k not in new_keys for k in links)
+    return finish(len(links), new, baseline, first_run=first_run, snapshot=state_file(ctx, key).as_posix(),
+                  links=sorted(links), pending=len(pending), date_fetches=len(queue))
+

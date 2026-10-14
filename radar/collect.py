@@ -20,7 +20,7 @@ from radar.urls import normalize
 UA = {"User-Agent": "Mozilla/5.0 (compatible; embodied-radar/0.1)"}
 
 
-def make_context(run_date: date, state_dir: Path, first_run_date_fetch_max: int) -> Context:
+def make_context(run_date: date, state_dir: Path, date_fetch_budget: int) -> Context:
     session = requests.Session()
     session.headers.update(UA)
     token = os.environ.get("GITHUB_TOKEN")
@@ -41,7 +41,7 @@ def make_context(run_date: date, state_dir: Path, first_run_date_fetch_max: int)
             return None
         return json.loads(doc).get("date") if doc else None
 
-    return Context(run_date, state_dir, get, page_date, first_run_date_fetch_max)
+    return Context(run_date, state_dir, get, page_date, date_fetch_budget)
 
 
 STATE_KIND = {"rss": "feeds", "page": "pages"}
@@ -62,7 +62,8 @@ def run_channel(channel: dict, ctx: Context, key: str) -> dict:
 def run_search(domain, ctx: Context) -> dict:
     """Open search finds teams outside the list; results have no dates, so the first run is a baseline."""
     settings = domain.search
-    seen = load_state(ctx, "search/queries")
+    state = load_state(ctx, "search/queries")
+    seen = None if state is None else set(state)
     keys, new, failures = [], [], 0
     for query in domain.queries:
         result = search_with_retry(query, settings.get("backend", "searxng"),
@@ -76,7 +77,7 @@ def run_search(domain, ctx: Context) -> dict:
             if seen is not None and k not in seen:
                 new.append({"url": r["url"], "key": k, "title": r["title"], "query": query})
         time.sleep(float(settings.get("interval_seconds", 1.0)))
-    save_state(ctx, "search/queries", keys)
+    save_state(ctx, "search/queries", sorted(set(keys)))
     out = finish(len(set(keys)), new, len(set(keys)) - len(new), first_run=seen is None)
     out["failed_queries"] = failures
     return out
@@ -97,7 +98,7 @@ def check_gold(gold: list[dict], items: dict, run_date: date) -> list[dict]:
 def run(domain_dir: str, out_dir: str, state_dir: str, gold_path: str, run_date: date | None = None) -> dict:
     domain = config.load(domain_dir)
     run_date = run_date or date.today()
-    ctx = make_context(run_date, Path(state_dir), int(domain.page.get("first_run_date_fetch_max", 12)))
+    ctx = make_context(run_date, Path(state_dir), int(domain.page.get("date_fetch_budget", 150)))
 
     entities, items = {}, {}
     for entity in domain.entities:
@@ -135,6 +136,7 @@ def run(domain_dir: str, out_dir: str, state_dir: str, gold_path: str, run_date:
         "totals": {"channels": len(all_rows), "failed": sum(r["status"] == "failed" for r in all_rows),
                    "broken": sum(r["status"] == "broken" for r in all_rows), "new_items": len(items)},
         "by_type": by_type,
+        "page_date_fetches": {"used": ctx.date_fetches, "budget": ctx.date_fetch_budget},
         "entities": entities,
         "search": search and {k: v for k, v in search.items() if k != "new"} | {"new": len(search["new"])},
         "gold": check_gold(gold, items, run_date),
