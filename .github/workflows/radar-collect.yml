@@ -1,0 +1,44 @@
+name: radar-collect
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: Domain under domains/
+        default: embodied
+      backend:
+        description: Search backend (empty = domain.yaml)
+        type: choice
+        options: ["", searxng, ddgs]
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ".[test]"
+      - run: pytest -q
+      - name: Start SearXNG
+        if: inputs.backend != 'ddgs'
+        run: |
+          docker run -d --name searxng -p 8080:8080 -v "$PWD/ci/searxng:/etc/searxng" searxng/searxng:latest
+          for i in $(seq 1 30); do
+            curl -sf "http://localhost:8080/search?q=robot&format=json" > /dev/null && exit 0
+            sleep 3
+          done
+          docker logs searxng | tail -50
+          exit 1
+      - run: python -m radar.collect --domain "${{ inputs.domain }}" ${{ inputs.backend && format('--backend {0}', inputs.backend) || '' }}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collect-${{ inputs.domain }}
+          path: out/${{ inputs.domain }}/latest/

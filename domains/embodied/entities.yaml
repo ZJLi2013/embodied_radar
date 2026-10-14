@@ -1,0 +1,23 @@
+# Tracked teams. tier: core (weekly) / trial (weekly, auto-added) / dormant (every 4 weeks).
+- {id: physical-intelligence, name: Physical Intelligence, tier: core, query: '"Physical Intelligence" robot'}
+- {id: figure, name: Figure AI, tier: core, query: '"Figure AI" robot'}
+- {id: 1x, name: 1X Technologies, tier: core, query: '"1X Technologies" robot'}
+- {id: skild-ai, name: Skild AI, tier: core, query: '"Skild AI" robot'}
+- {id: generalist-ai, name: Generalist AI, tier: core, query: '"Generalist AI" robot'}
+- {id: tesla-optimus, name: Tesla Optimus, tier: core, query: '"Tesla Optimus" robot'}
+- {id: boston-dynamics, name: Boston Dynamics, tier: core, query: '"Boston Dynamics" robot'}
+- {id: agility, name: Agility Robotics, tier: core, query: '"Agility Robotics" robot'}
+- {id: apptronik, name: Apptronik, tier: core, query: '"Apptronik" robot'}
+- {id: unitree, name: Unitree, tier: core, query: '"Unitree" robot'}
+- {id: agibot, name: AgiBot, tier: core, query: '"AgiBot" robot'}
+- {id: world-labs, name: World Labs, tier: core, query: '"World Labs" robot'}
+- {id: deepmind-robotics, name: Google DeepMind Robotics, tier: core, query: '"Google DeepMind" robot'}
+- {id: nvidia-gear, name: NVIDIA GEAR / Isaac, tier: core, query: '"NVIDIA" robot'}
+- {id: meta-fair-robotics, name: Meta FAIR Robotics, tier: core, query: '"Meta FAIR" robot'}
+- {id: openai-robotics, name: OpenAI Robotics, tier: core, query: '"OpenAI" robot'}
+- {id: tri, name: Toyota Research Institute, tier: core, query: '"Toyota Research Institute" robot'}
+- {id: hf-lerobot, name: Hugging Face LeRobot, tier: core, query: '"LeRobot" robot'}
+- {id: stanford, name: Stanford SAIL / IRIS, tier: core, query: '"Stanford" robot'}
+- {id: berkeley, name: Berkeley BAIR / RAIL, tier: core, query: '"Berkeley" robot'}
+- {id: cmu-ri, name: CMU Robotics Institute, tier: core, query: '"CMU" robot'}
+- {id: mit-csail, name: MIT CSAIL, tier: core, query: '"MIT CSAIL" robot'}

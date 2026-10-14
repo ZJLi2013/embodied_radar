@@ -1,0 +1,25 @@
+name: embodied
+title: 具身机器人技术雷达
+
+# The LLM judge (t3) reads these definitions; the collector does not filter on them.
+scope:
+  include:
+    - 物理机器人（机械臂、人形、四足、移动机器人、灵巧手）的感知、控制、学习、仿真、数据、硬件与工具链
+    - 通用基座模型或 agent 用在机器人或具身仿真环境上的工作
+    - 面向机器人的 agent harness、自进化系统
+  exclude:
+    - 自动驾驶、航天器
+    - 没有落到机器人或具身环境上的通用 AI 内容
+  business:
+    - 融资、合作与政府项目、人事、产品上市与营销、市场报告、活动、赞助内容
+
+search:
+  backend: searxng
+  max_results: 10
+  interval_seconds: 1.0
+  retries: 2
+
+# Sent after the collection run for diagnosis only; its results are not candidates.
+control:
+  query: Gemini 4 Argon for Robotics
+  gold: G1

@@ -9,8 +9,8 @@ from pathlib import Path
 import requests
 import trafilatura
 import yaml
-from ddgs import DDGS
 
+from radar import search as backends
 from radar.urls import normalize
 
 QUERIES = [
@@ -21,24 +21,11 @@ QUERIES = [
 PROBE_GOLD = ("G1", "G2")
 UA = {"User-Agent": "Mozilla/5.0 (compatible; embodied-radar/0.1)"}
 BACKEND = os.environ.get("RADAR_BACKEND", "ddgs")
-SEARXNG_URL = os.environ.get("SEARXNG_URL", "http://localhost:8080")
-
-
-def _search_urls(query: str, max_results: int) -> list[str]:
-    if BACKEND == "searxng":
-        resp = requests.get(
-            f"{SEARXNG_URL}/search",
-            params={"q": query, "format": "json", "time_range": "week", "language": "en"},
-            timeout=60,
-        )
-        resp.raise_for_status()
-        return [r.get("url", "") for r in resp.json().get("results", [])][:max_results]
-    return [r.get("href", "") for r in DDGS().text(query, timelimit="w", max_results=max_results) or []]
 
 
 def search(query: str, max_results: int) -> dict:
     try:
-        urls = _search_urls(query, max_results)
+        urls = [r["url"] for r in backends.search(query, BACKEND, max_results)]
         return {"count": len(urls), "error": None, "urls": urls}
     except Exception as exc:  # backend errors are the measurement here, not a crash
         return {"count": 0, "error": f"{type(exc).__name__}: {exc}"[:300], "urls": []}
