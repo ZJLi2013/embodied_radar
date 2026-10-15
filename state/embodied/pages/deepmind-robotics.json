@@ -1,0 +1,9 @@
+{
+"seen": [
+"deepmind.google/models/gemini-robotics/embodied-reasoning",
+"deepmind.google/models/gemini-robotics/on-device",
+"deepmind.google/models/gemini-robotics/responsibly-advancing-ai-and-robotics",
+"deepmind.google/models/gemini-robotics/vla"
+],
+"pending": {}
+}
