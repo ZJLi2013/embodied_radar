@@ -1,11 +1,13 @@
 """Scope judgment: one DeepSeek call per candidate, on its fields and the text fetched from its page."""
 
 import argparse
+import copy
 import gzip
 import hashlib
 import json
 import os
 import re
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +21,8 @@ TEXT_LIMIT = 6000
 DECISIONS = {"keep", "reject", "needs_review"}
 OUTPUT_KEYS = {"decision", "reason", "evidence_quote", "team"}
 HTTP_RETRY_BUDGET = 3
+# requests' read timeout counts gaps between bytes; DeepSeek keep-alive bytes defeat it, so cap each call's wall time.
+CALL_DEADLINE_SECONDS = 120
 UA = {"User-Agent": "Mozilla/5.0 (compatible; embodied-radar/0.1)"}
 DIRECTION = {"brain": "大脑", "data_sim": "数据 / 仿真"}
 
@@ -121,6 +125,26 @@ def parse_output(content: str) -> dict:
     return data
 
 
+def call_with_deadline(fn, seconds: float):
+    """A hung call is abandoned on a daemon thread and reported as a timeout."""
+    box = {}
+
+    def target():
+        try:
+            box["value"] = fn()
+        except BaseException as exc:
+            box["error"] = exc
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(seconds)
+    if thread.is_alive():
+        raise requests.Timeout(f"no answer within {seconds}s")
+    if "error" in box:
+        raise box["error"]
+    return box["value"]
+
+
 def run(items_path: Path, evidence_dir: Path, out_dir: Path, domain_dir: Path, provider, model: str) -> dict:
     domain = config.load(domain_dir)
     items = [json.loads(l) for l in items_path.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -141,10 +165,13 @@ def run(items_path: Path, evidence_dir: Path, out_dir: Path, domain_dir: Path, p
                "request_file": f"calls/{name}.request.json", "response_file": None, "error": None}
         while True:
             usage["requests"] += 1
-            provider.last_response = None
+            # A fresh copy per call: an abandoned call that answers late must not overwrite this call's response.
+            call = copy.copy(provider)
+            call.last_response = None
             try:
-                content = provider.chat(messages, model=model, temperature=params["temperature"],
-                                        max_tokens=params["max_tokens"], response_format=params["response_format"])
+                content = call_with_deadline(lambda: call.chat(
+                    messages, model=model, temperature=params["temperature"], max_tokens=params["max_tokens"],
+                    response_format=params["response_format"]), CALL_DEADLINE_SECONDS)
             except requests.RequestException as exc:
                 if retries_left > 0:
                     retries_left -= 1
@@ -154,7 +181,7 @@ def run(items_path: Path, evidence_dir: Path, out_dir: Path, domain_dir: Path, p
             except ValueError as exc:  # truncated or empty answer from the provider
                 row["error"] = f"provider:{exc}"
             break
-        raw = provider.last_response
+        raw = call.last_response
         if raw is not None:
             (calls_dir / f"{name}.response.json").write_text(json.dumps(raw, ensure_ascii=False, indent=1), encoding="utf-8")
             row["response_file"] = f"calls/{name}.response.json"

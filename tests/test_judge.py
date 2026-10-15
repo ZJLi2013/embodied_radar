@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -24,16 +25,23 @@ class Resp:
 
 
 class FakeProvider:
-    """Replies are content strings or exceptions, consumed in order."""
+    """Replies are content strings, exceptions, or ("hang", seconds); consumed in order. State is shared by copies."""
 
     def __init__(self, replies):
-        self.replies, self.calls, self.last_response = list(replies), 0, None
+        self.replies, self.log, self.last_response = list(replies), [], None
+
+    @property
+    def calls(self):
+        return len(self.log)
 
     def chat(self, messages, **kwargs):
-        self.calls += 1
+        self.log.append(1)
         reply = self.replies.pop(0)
         if isinstance(reply, Exception):
             raise reply
+        if isinstance(reply, tuple):
+            time.sleep(reply[1])
+            reply = answer()
         self.last_response = {"model": "fake-model", "usage": {"prompt_tokens": 10, "completion_tokens": 5},
                               "choices": [{"message": {"content": reply}}]}
         return reply
@@ -95,6 +103,16 @@ def test_api_failures_use_the_shared_retry_budget_then_error(frozen, tmp_path):
     summary, provider = run(frozen, tmp_path, [fail] * 4 + [answer("needs_review", "")])
     assert summary["results"][0]["error"] == "http:ConnectionError" and summary["http_retries_used"] == 3
     assert provider.calls == 5 and summary["results"][1]["error"] is None
+
+
+def test_hung_call_times_out_and_its_late_answer_is_not_recorded(frozen, tmp_path, monkeypatch):
+    monkeypatch.setattr(judge, "CALL_DEADLINE_SECONDS", 0.2)
+    monkeypatch.setattr(judge, "HTTP_RETRY_BUDGET", 0)
+    summary, _ = run(frozen, tmp_path, [("hang", 0.5), answer("needs_review", "")])
+    time.sleep(0.5)
+    first, second = summary["results"]
+    assert first["error"] == "http:Timeout" and first["response_file"] is None
+    assert second["error"] is None and second["decision"] == "needs_review"
 
 
 def test_verifier_accepts_matching_run_and_catches_label_mismatch(frozen, tmp_path):
