@@ -1,0 +1,137 @@
+{
+ "amazon.science/blog/can-we-change-an-ai-models-architecture-without-retraining-it-from-scratch": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "deepmind.google/blog/developing-gemini-4-argon-responsibly-and-safely": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "deepmind.google/blog/gemini-4-argon-for-robotics": {
+  "decision": "keep",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "deepmind.google/blog/introducing-gemini-4-argon": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "deepmind.google/blog/on-device-ai-scam-detection-mddi": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "github.com/amazon-far/imprint": {
+  "decision": "keep",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "github.com/facebookresearch/GenIA": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "github.com/facebookresearch/robo_jepa": {
+  "decision": "keep",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "github.com/facebookresearch/tracing-sycophancy-in-large-language-models": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "huggingface.co/blog/LiquidAI/lfm25-24b-a2b": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "huggingface.co/blog/allenai/hiro-acev2": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "huggingface.co/blog/building-with-ml-intern": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "huggingface.co/datasets/lerobot/FineART": {
+  "decision": "keep",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "huggingface.co/nvidia/Qwen-Image-NVFP4": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "microsoft.com/en-us/research/blog/simulating-student-learning-for-better-ai-tutoring": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/amp-beyond-coding": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/asana-browser-agent": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/block-ai-powered-security": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/disrupting-ai-enabled-false-front-operations": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/higgsfield-longer-videos-voice": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/legalon-halves-codex-costs": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/oracle": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/pollo-ai": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/sentinelone": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/sophos": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/the-eus-next-chapter-in-ai-is-agentic": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ },
+ "openai.com/index/third-moment-research": {
+  "decision": "reject",
+  "run": "38688104123",
+  "run_date": "2026-10-15"
+ }
+}

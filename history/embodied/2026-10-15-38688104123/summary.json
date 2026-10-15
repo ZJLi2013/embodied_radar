@@ -1,0 +1,849 @@
+{
+  "run_date": "2026-10-15",
+  "window": {
+    "start": "2026-10-08",
+    "end": "2026-10-15"
+  },
+  "totals": {
+    "channels": 35,
+    "failed": 0,
+    "broken": 0,
+    "new_items": 27
+  },
+  "by_type": {
+    "rss": {
+      "channels": 9,
+      "failed": 0,
+      "broken": 0,
+      "no_update": 4,
+      "updated": 5,
+      "new": 21
+    },
+    "page": {
+      "channels": 11,
+      "failed": 0,
+      "broken": 0,
+      "no_update": 11,
+      "updated": 0,
+      "new": 0
+    },
+    "hf": {
+      "channels": 4,
+      "failed": 0,
+      "broken": 0,
+      "no_update": 2,
+      "updated": 2,
+      "new": 2
+    },
+    "github": {
+      "channels": 11,
+      "failed": 0,
+      "broken": 0,
+      "no_update": 9,
+      "updated": 2,
+      "new": 4
+    }
+  },
+  "page_date_fetches": {
+    "used": 0,
+    "budget": 150
+  },
+  "entities": {
+    "deepmind-robotics": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "rss",
+          "target": "https://deepmind.google/blog/rss.xml",
+          "status": "updated",
+          "fetched": 100,
+          "new": [
+            {
+              "url": "https://deepmind.google/blog/on-device-ai-scam-detection-mddi/",
+              "key": "deepmind.google/blog/on-device-ai-scam-detection-mddi",
+              "title": "Google DeepMind and Singapore Government collaborate to build fine-tuned AI model for scam detection",
+              "published": "2026-10-14"
+            },
+            {
+              "url": "https://deepmind.google/blog/developing-gemini-4-argon-responsibly-and-safely/",
+              "key": "deepmind.google/blog/developing-gemini-4-argon-responsibly-and-safely",
+              "title": "Developing Gemini 4 Argon responsibly and safely",
+              "published": "2026-10-13"
+            },
+            {
+              "url": "https://deepmind.google/blog/gemini-4-argon-for-robotics/",
+              "key": "deepmind.google/blog/gemini-4-argon-for-robotics",
+              "title": "Gemini 4 Argon for Robotics",
+              "published": "2026-10-13"
+            },
+            {
+              "url": "https://deepmind.google/blog/introducing-gemini-4-argon/",
+              "key": "deepmind.google/blog/introducing-gemini-4-argon",
+              "title": "Gemini 4 Argon: Built to solve your hardest problems",
+              "published": "2026-10-13"
+            }
+          ],
+          "baseline": 96,
+          "error": null,
+          "first_run": false
+        },
+        {
+          "type": "rss",
+          "target": "https://developers.googleblog.com/feeds/posts/default",
+          "status": "no_update",
+          "fetched": 20,
+          "new": [],
+          "baseline": 20,
+          "error": null,
+          "first_run": false
+        },
+        {
+          "type": "page",
+          "target": "https://deepmind.google/models/gemini-robotics/",
+          "status": "no_update",
+          "fetched": 4,
+          "new": [],
+          "baseline": 4,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/deepmind-robotics.json",
+          "links": [
+            "deepmind.google/models/gemini-robotics/embodied-reasoning",
+            "deepmind.google/models/gemini-robotics/on-device",
+            "deepmind.google/models/gemini-robotics/responsibly-advancing-ai-and-robotics",
+            "deepmind.google/models/gemini-robotics/vla"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        }
+      ]
+    },
+    "nvidia-gear": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://research.nvidia.com/labs/gear/",
+          "status": "no_update",
+          "fetched": 3,
+          "new": [],
+          "baseline": 3,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/nvidia-gear.json",
+          "links": [
+            "research.nvidia.com/labs/gear/_next/static/css/06c31f59cd3aee56.css",
+            "research.nvidia.com/labs/gear/egoscale",
+            "research.nvidia.com/labs/gear/publications"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        },
+        {
+          "type": "rss",
+          "target": "https://developer.nvidia.com/blog/category/robotics/feed/",
+          "status": "no_update",
+          "fetched": 100,
+          "new": [],
+          "baseline": 100,
+          "error": null,
+          "first_run": false
+        },
+        {
+          "type": "hf",
+          "target": "nvidia",
+          "status": "updated",
+          "fetched": 60,
+          "new": [
+            {
+              "url": "https://huggingface.co/nvidia/Qwen-Image-NVFP4",
+              "key": "huggingface.co/nvidia/Qwen-Image-NVFP4",
+              "title": "nvidia/Qwen-Image-NVFP4",
+              "kind": "models",
+              "published": "2026-10-09"
+            }
+          ],
+          "baseline": 59,
+          "error": null
+        }
+      ]
+    },
+    "nvidia-srl": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "rss",
+          "target": "https://research.nvidia.com/labs/srl/publication/index.xml",
+          "status": "no_update",
+          "fetched": 360,
+          "new": [],
+          "baseline": 360,
+          "error": null,
+          "first_run": false
+        },
+        {
+          "type": "github",
+          "target": "NVlabs",
+          "status": "no_update",
+          "fetched": 30,
+          "new": [],
+          "baseline": 30,
+          "error": null
+        }
+      ]
+    },
+    "openai": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "rss",
+          "target": "https://openai.com/news/rss.xml",
+          "status": "updated",
+          "fetched": 1293,
+          "new": [
+            {
+              "url": "https://openai.com/index/amp-beyond-coding",
+              "key": "openai.com/index/amp-beyond-coding",
+              "title": "Amp puts AI agents to work beyond code with OpenAI models",
+              "published": "2026-10-14"
+            },
+            {
+              "url": "https://openai.com/index/sentinelone",
+              "key": "openai.com/index/sentinelone",
+              "title": "SentinelOne cuts malware analysis from weeks to hours",
+              "published": "2026-10-14"
+            },
+            {
+              "url": "https://openai.com/index/third-moment-research",
+              "key": "openai.com/index/third-moment-research",
+              "title": "How Third Moment Research runs 10,000 agents for 36+ hours",
+              "published": "2026-10-14"
+            },
+            {
+              "url": "https://openai.com/index/block-ai-powered-security",
+              "key": "openai.com/index/block-ai-powered-security",
+              "title": "How Block is building AI-powered security with OpenAI technology",
+              "published": "2026-10-14"
+            },
+            {
+              "url": "https://openai.com/index/the-eus-next-chapter-in-ai-is-agentic",
+              "key": "openai.com/index/the-eus-next-chapter-in-ai-is-agentic",
+              "title": "The EU’s next chapter in AI is agentic",
+              "published": "2026-10-14"
+            },
+            {
+              "url": "https://openai.com/index/higgsfield-longer-videos-voice",
+              "key": "openai.com/index/higgsfield-longer-videos-voice",
+              "title": "Higgsfield takes AI video from 1 minute to over 10",
+              "published": "2026-10-13"
+            },
+            {
+              "url": "https://openai.com/index/asana-browser-agent",
+              "key": "openai.com/index/asana-browser-agent",
+              "title": "Asana cuts model costs 76x in browser tests with GPT-6.1 Sol",
+              "published": "2026-10-09"
+            },
+            {
+              "url": "https://openai.com/index/sophos",
+              "key": "openai.com/index/sophos",
+              "title": "Sophos cuts threat investigation time by 96% with OpenAI Daybreak",
+              "published": "2026-10-09"
+            },
+            {
+              "url": "https://openai.com/index/oracle",
+              "key": "openai.com/index/oracle",
+              "title": "How Oracle turns days of work into minutes with ChatGPT and Codex",
+              "published": "2026-10-08"
+            },
+            {
+              "url": "https://openai.com/index/pollo-ai",
+              "key": "openai.com/index/pollo-ai",
+              "title": "Pollo AI turns creative ideas into campaigns with OpenAI",
+              "published": "2026-10-08"
+            },
+            {
+              "url": "https://openai.com/index/legalon-halves-codex-costs",
+              "key": "openai.com/index/legalon-halves-codex-costs",
+              "title": "LegalOn halves Codex costs while maintaining development speed",
+              "published": "2026-10-08"
+            },
+            {
+              "url": "https://openai.com/index/disrupting-ai-enabled-false-front-operations",
+              "key": "openai.com/index/disrupting-ai-enabled-false-front-operations",
+              "title": "Disrupting AI-enabled “false front” operations",
+              "published": "2026-10-08"
+            }
+          ],
+          "baseline": 1281,
+          "error": null,
+          "first_run": false
+        },
+        {
+          "type": "github",
+          "target": "openai",
+          "status": "no_update",
+          "fetched": 30,
+          "new": [],
+          "baseline": 30,
+          "error": null
+        }
+      ]
+    },
+    "meta-fair": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://ai.meta.com/blog/",
+          "status": "no_update",
+          "fetched": 10,
+          "new": [],
+          "baseline": 10,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/meta-fair.json",
+          "links": [
+            "ai.meta.com/blog/alta-daily-fashion-app-segment-anything",
+            "ai.meta.com/blog/assistive-robotics-university-of-pittsburgh-sam-dino",
+            "ai.meta.com/blog/brain2qwerty-brain-ai-human-communication",
+            "ai.meta.com/blog/genesis-mission-lawrence-berkeley-national-laboratory-segment-anything-dino",
+            "ai.meta.com/blog/introducing-muse-image-muse-video-msl",
+            "ai.meta.com/blog/introducing-muse-spark-meta-model-api",
+            "ai.meta.com/blog/introducing-muse-spark-msl",
+            "ai.meta.com/blog/scaling-how-we-build-test-advanced-ai",
+            "ai.meta.com/blog/tribe-v2-brain-predictive-foundation-model",
+            "ai.meta.com/blog/world-resources-institute-dino-canopy-height-maps-v2"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        },
+        {
+          "type": "hf",
+          "target": "facebook",
+          "status": "no_update",
+          "fetched": 60,
+          "new": [],
+          "baseline": 60,
+          "error": null
+        },
+        {
+          "type": "github",
+          "target": "facebookresearch",
+          "status": "updated",
+          "fetched": 30,
+          "new": [
+            {
+              "url": "https://github.com/facebookresearch/tracing-sycophancy-in-large-language-models",
+              "key": "github.com/facebookresearch/tracing-sycophancy-in-large-language-models",
+              "title": "tracing-sycophancy-in-large-language-models",
+              "description": "This repository contains the release artifacts accompanying From Preference Data to Personalization Tracing Sycophancy in Large Language Models.",
+              "published": "2026-10-12"
+            },
+            {
+              "url": "https://github.com/facebookresearch/robo_jepa",
+              "key": "github.com/facebookresearch/robo_jepa",
+              "title": "robo_jepa",
+              "description": "OSS of roboJEPA",
+              "published": "2026-10-08"
+            },
+            {
+              "url": "https://github.com/facebookresearch/GenIA",
+              "key": "github.com/facebookresearch/GenIA",
+              "title": "GenIA",
+              "description": "Generative Reconstruction with Test-Time Input Alignment",
+              "published": "2026-10-08"
+            }
+          ],
+          "baseline": 27,
+          "error": null
+        }
+      ]
+    },
+    "msr": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "rss",
+          "target": "https://www.microsoft.com/en-us/research/feed/",
+          "status": "updated",
+          "fetched": 10,
+          "new": [
+            {
+              "url": "https://www.microsoft.com/en-us/research/blog/simulating-student-learning-for-better-ai-tutoring/",
+              "key": "microsoft.com/en-us/research/blog/simulating-student-learning-for-better-ai-tutoring",
+              "title": "Simulating student learning for better AI tutoring",
+              "published": "2026-10-12"
+            }
+          ],
+          "baseline": 9,
+          "error": null,
+          "first_run": false
+        }
+      ]
+    },
+    "amazon-far": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "rss",
+          "target": "https://www.amazon.science/index.rss",
+          "status": "updated",
+          "fetched": 25,
+          "new": [
+            {
+              "url": "https://www.amazon.science/blog/can-we-change-an-ai-models-architecture-without-retraining-it-from-scratch",
+              "key": "amazon.science/blog/can-we-change-an-ai-models-architecture-without-retraining-it-from-scratch",
+              "title": "Can we change an AI model&#8217;s architecture without retraining it from scratch?",
+              "published": "2026-10-12"
+            }
+          ],
+          "baseline": 24,
+          "error": null,
+          "first_run": false
+        },
+        {
+          "type": "github",
+          "target": "amazon-far",
+          "status": "updated",
+          "fetched": 17,
+          "new": [
+            {
+              "url": "https://github.com/amazon-far/imprint",
+              "key": "github.com/amazon-far/imprint",
+              "title": "imprint",
+              "description": "",
+              "published": "2026-10-10"
+            }
+          ],
+          "baseline": 16,
+          "error": null
+        }
+      ]
+    },
+    "tri": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "rss",
+          "target": "https://medium.com/feed/toyotaresearch",
+          "status": "no_update",
+          "fetched": 10,
+          "new": [],
+          "baseline": 10,
+          "error": null,
+          "first_run": false
+        },
+        {
+          "type": "github",
+          "target": "ToyotaResearchInstitute",
+          "status": "no_update",
+          "fetched": 30,
+          "new": [],
+          "baseline": 30,
+          "error": null
+        },
+        {
+          "type": "hf",
+          "target": "TRI-ML",
+          "status": "no_update",
+          "fetched": 34,
+          "new": [],
+          "baseline": 34,
+          "error": null
+        }
+      ]
+    },
+    "physical-intelligence": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://www.pi.website/blog",
+          "status": "no_update",
+          "fetched": 8,
+          "new": [],
+          "baseline": 8,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/physical-intelligence.json",
+          "links": [
+            "pi.website/blog/api-beta",
+            "pi.website/blog/olympics",
+            "pi.website/blog/openpi",
+            "pi.website/blog/partner",
+            "pi.website/blog/pi0",
+            "pi.website/blog/pi05",
+            "pi.website/blog/pi07",
+            "pi.website/blog/pistar06"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        },
+        {
+          "type": "github",
+          "target": "Physical-Intelligence",
+          "status": "no_update",
+          "fetched": 10,
+          "new": [],
+          "baseline": 10,
+          "error": null
+        }
+      ]
+    },
+    "skild": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://www.skild.ai/blogs",
+          "status": "no_update",
+          "fetched": 12,
+          "new": [],
+          "baseline": 12,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/skild.json",
+          "links": [
+            "skild.ai/blogs/announcing-our-300m-series-a",
+            "skild.ai/blogs/bengaluru",
+            "skild.ai/blogs/building-the-general-purpose-robotic-brain",
+            "skild.ai/blogs/learning-by-watching",
+            "skild.ai/blogs/omni-bodied",
+            "skild.ai/blogs/one-policy-all-scenarios",
+            "skild.ai/blogs/physical-self-play",
+            "skild.ai/blogs/reindustrial-revolution",
+            "skild.ai/blogs/s1",
+            "skild.ai/blogs/series-c",
+            "skild.ai/blogs/skild-crosses-100m-arr",
+            "skild.ai/blogs/skild-zebra"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        }
+      ]
+    },
+    "generalist": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://generalistai.com/blog",
+          "status": "no_update",
+          "fetched": 14,
+          "new": [],
+          "baseline": 14,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/generalist.json",
+          "links": [
+            "generalistai.com/blog/accelerating-the-next-phase-of-physical-ai",
+            "generalistai.com/blog/beyond-world-models",
+            "generalistai.com/blog/company",
+            "generalistai.com/blog/gen-0",
+            "generalistai.com/blog/gen-1",
+            "generalistai.com/blog/gen-1.5",
+            "generalistai.com/blog/ideas",
+            "generalistai.com/blog/physical-commonsense",
+            "generalistai.com/blog/research",
+            "generalistai.com/blog/research-preview",
+            "generalistai.com/blog/stories",
+            "generalistai.com/blog/the-real-breakthrough-behind-our-gtc-demo",
+            "generalistai.com/blog/the-robots-build-now-too",
+            "generalistai.com/blog/towards-machines-with-a-thousand-hands"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        }
+      ]
+    },
+    "field-ai": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://www.fieldai.com/news",
+          "status": "no_update",
+          "fetched": 6,
+          "new": [],
+          "baseline": 6,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/field-ai.json",
+          "links": [
+            "fieldai.com/news/boston-dynamics-and-fieldai-partner-to-bring-robots-into-uncharted-and-dynamic-environments",
+            "fieldai.com/news/bringing-general-purpose-robots-to-every-construction-site-inside-big-d-constructions-expansion-with-fieldai",
+            "fieldai.com/news/caterpillar-and-fieldai-advance-ai-powered-industrial-innovation",
+            "fieldai.com/news/fieldai-accelerates-industrial-customers-adoption-of-ai-in-collaboration-with-nvidia",
+            "fieldai.com/news/fieldai-and-nvidia-omniverse-building-the-next-generation-of-industrial-ai",
+            "fieldai.com/news/how-fieldai-and-boston-dynamics-made-robot-autonomy-practical-on-construction-sites"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        }
+      ]
+    },
+    "dyna": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://www.dyna.co/research",
+          "status": "no_update",
+          "fetched": 5,
+          "new": [],
+          "baseline": 5,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/dyna.json",
+          "links": [
+            "dyna.co/research/dyna-1",
+            "dyna.co/research/dyna-2-infrastructure",
+            "dyna.co/research/open-world-dexterity",
+            "dyna.co/research/pre-training",
+            "dyna.co/research/scaling-customer-deployments"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        }
+      ]
+    },
+    "world-labs": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://www.worldlabs.ai/blog",
+          "status": "no_update",
+          "fetched": 13,
+          "new": [],
+          "baseline": 13,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/world-labs.json",
+          "links": [
+            "worldlabs.ai/blog/3d-as-code",
+            "worldlabs.ai/blog/amd-announcement",
+            "worldlabs.ai/blog/announcing-the-world-api",
+            "worldlabs.ai/blog/atlas",
+            "worldlabs.ai/blog/bigger-better-worlds",
+            "worldlabs.ai/blog/funding-2026",
+            "worldlabs.ai/blog/generating-worlds",
+            "worldlabs.ai/blog/marble-world-model",
+            "worldlabs.ai/blog/real-to-sim-to-real",
+            "worldlabs.ai/blog/rtfm",
+            "worldlabs.ai/blog/scenix",
+            "worldlabs.ai/blog/spark-2.0",
+            "worldlabs.ai/blog/taxonomy-of-world-models"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        },
+        {
+          "type": "github",
+          "target": "worldlabsai",
+          "status": "no_update",
+          "fetched": 7,
+          "new": [],
+          "baseline": 7,
+          "error": null
+        }
+      ]
+    },
+    "sunday": {
+      "direction": "brain",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://www.sunday.ai/blog",
+          "status": "no_update",
+          "fetched": 3,
+          "new": [],
+          "baseline": 3,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/sunday.json",
+          "links": [
+            "sunday.ai/blog/act-2-preview",
+            "sunday.ai/blog/no-robot-data",
+            "sunday.ai/blog/series-b"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        }
+      ]
+    },
+    "nvidia-cosmos": {
+      "direction": "data_sim",
+      "channels": [
+        {
+          "type": "github",
+          "target": "nvidia-cosmos",
+          "status": "no_update",
+          "fetched": 12,
+          "new": [],
+          "baseline": 12,
+          "error": null
+        }
+      ]
+    },
+    "nvidia-isaac": {
+      "direction": "data_sim",
+      "channels": [
+        {
+          "type": "github",
+          "target": "isaac-sim",
+          "status": "no_update",
+          "fetched": 22,
+          "new": [],
+          "baseline": 22,
+          "error": null
+        }
+      ]
+    },
+    "lerobot": {
+      "direction": "data_sim",
+      "channels": [
+        {
+          "type": "rss",
+          "target": "https://huggingface.co/blog/feed.xml",
+          "status": "updated",
+          "fetched": 876,
+          "new": [
+            {
+              "url": "https://huggingface.co/blog/allenai/hiro-acev2",
+              "key": "huggingface.co/blog/allenai/hiro-acev2",
+              "title": "HiRO-ACEv2: Simulating extreme weather at 3 km resolution for a fraction of the cost",
+              "published": "2026-10-14"
+            },
+            {
+              "url": "https://huggingface.co/blog/LiquidAI/lfm25-24b-a2b",
+              "key": "huggingface.co/blog/LiquidAI/lfm25-24b-a2b",
+              "title": "Run fast, private agents on-device with LFM2.5-24B-A2B",
+              "published": "2026-10-13"
+            },
+            {
+              "url": "https://huggingface.co/blog/building-with-ml-intern",
+              "key": "huggingface.co/blog/building-with-ml-intern",
+              "title": "The model that didn't exist, so you made it yourself",
+              "published": "2026-10-08"
+            }
+          ],
+          "baseline": 873,
+          "error": null,
+          "first_run": false
+        },
+        {
+          "type": "hf",
+          "target": "lerobot",
+          "status": "updated",
+          "fetched": 60,
+          "new": [
+            {
+              "url": "https://huggingface.co/datasets/lerobot/FineART",
+              "key": "huggingface.co/datasets/lerobot/FineART",
+              "title": "lerobot/FineART",
+              "kind": "datasets",
+              "published": "2026-10-12"
+            }
+          ],
+          "baseline": 59,
+          "error": null
+        }
+      ]
+    },
+    "genesis": {
+      "direction": "data_sim",
+      "channels": [
+        {
+          "type": "github",
+          "target": "Genesis-Embodied-AI",
+          "status": "no_update",
+          "fetched": 16,
+          "new": [],
+          "baseline": 16,
+          "error": null
+        }
+      ]
+    },
+    "maniskill": {
+      "direction": "data_sim",
+      "channels": [
+        {
+          "type": "github",
+          "target": "haosulab",
+          "status": "no_update",
+          "fetched": 30,
+          "new": [],
+          "baseline": 30,
+          "error": null
+        }
+      ]
+    },
+    "scale-ai": {
+      "direction": "data_sim",
+      "channels": [
+        {
+          "type": "page",
+          "target": "https://scale.com/blog",
+          "status": "no_update",
+          "fetched": 21,
+          "new": [],
+          "baseline": 21,
+          "error": null,
+          "first_run": false,
+          "snapshot": "state/embodied/pages/scale-ai.json",
+          "links": [
+            "scale.com/blog/ai-testing-evaluation-lifecycle",
+            "scale.com/blog/category/autonomous-vehicle",
+            "scale.com/blog/category/company",
+            "scale.com/blog/category/customers",
+            "scale.com/blog/category/data",
+            "scale.com/blog/category/defense",
+            "scale.com/blog/category/enterprise",
+            "scale.com/blog/category/experts",
+            "scale.com/blog/category/global",
+            "scale.com/blog/category/healthcare",
+            "scale.com/blog/category/partnerships",
+            "scale.com/blog/category/podcast",
+            "scale.com/blog/category/policy",
+            "scale.com/blog/category/product",
+            "scale.com/blog/category/public-sector",
+            "scale.com/blog/category/research",
+            "scale.com/blog/category/robotics",
+            "scale.com/blog/category/testing-evals",
+            "scale.com/blog/deploying-enterprise-ai-agents-with-scale-and-google-cloud",
+            "scale.com/blog/steer-the-ai-frontier-washington-must-build-its-testing-power",
+            "scale.com/blog/why-you-need-to-red-team-your-enterprise-ai"
+          ],
+          "pending": 0,
+          "date_fetches": 0
+        }
+      ]
+    }
+  },
+  "search": {
+    "status": "updated",
+    "fetched": 68,
+    "baseline": 42,
+    "error": null,
+    "first_run": false,
+    "failed_queries": 0,
+    "new": 26
+  },
+  "gold": [
+    {
+      "id": "G1",
+      "hit": true,
+      "expect": {
+        "entity": "deepmind-robotics",
+        "type": "rss"
+      },
+      "via": [
+        [
+          "deepmind-robotics",
+          "rss"
+        ]
+      ]
+    }
+  ]
+}
