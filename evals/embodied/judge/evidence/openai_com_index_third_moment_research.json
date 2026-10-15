@@ -1,0 +1,13 @@
+{
+ "key": "openai.com/index/third-moment-research",
+ "request_url": "https://openai.com/index/third-moment-research",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:38:43+00:00",
+ "raw_file": "openai_com_index_third_moment_research.raw.gz",
+ "text_file": "openai_com_index_third_moment_research.txt",
+ "raw_sha256": "12b6bd9a59abc1229da5c9ff8adf18b1b599d72cb4f987abe0d1ea5d672b3d76",
+ "text_sha256": "c1fb28904e614d0e24f141485ddab8a5f0e40ed01db253059b4d1469bba06b8b",
+ "text_chars": 7364
+}

@@ -1,0 +1,243 @@
+---
+license: other
+task_categories:
+  - robotics
+tags:
+  - robotics
+  - bimanual-manipulation
+  - vision-language-action
+  - subtask-annotations
+  - LeRobot
+pretty_name: FineART
+size_categories:
+  - 10K<n<100K
+configs:
+  - config_name: default
+    data_files: data/*/*.parquet
+---
+
+# FineART: Fine-Grained Annotated Robotic Trajectory Dataset
+
+FineART is co-released by [Scale AI](https://scale.com/) and [Hugging Face LeRobot](https://huggingface.co/lerobot). The data was collected and annotated by the Physical AI unit at [Scale AI](https://scale.com/).
+
+FineART is a bimanual manipulation dataset where **every episode comes with dense, human-written subtask annotations**. It has **40,543 teleoperated episodes (1,718 hours)**, **533,913 subtask labels**, and **151 tasks**, all collected on a Trossen Stationary AI (ALOHA-style) bimanual robot.
+
+Most robot datasets give one instruction per episode, or label subtasks for only part of their hours. In FineART the whole dataset is annotated: episodes average about 2.5 minutes and about 13 subtasks, so models can be trained directly on step-by-step language.
+
+Dense subtask language makes FineART suited to training **hierarchical (System 1 / System 2) policies**: a high-level policy (System 2) that reads the task and predicts the next subtask in language, and a low-level policy (System 1) that conditions on that subtask to produce actions. In this spirit we also launched **[FineART-VLA](https://TODO-fineart-vla-link)**, a single policy that predicts its own next subtask and then acts on it (see [FineART-VLA](#fineart-vla) below).
+
+📄 **Paper:** [FineART: Fine-Grained Annotated Robotic Trajectory Dataset and Vision-Language-Action Model for Bimanual Manipulation](https://arxiv.org/abs/2609.36416)
+🤖 **Model (FineART-VLA):** <!-- TODO: link -->
+💻 **Code:** [LeRobot](https://github.com/huggingface/lerobot/tree/main/src/lerobot/policies/fineart_vla)
+
+## At a glance
+
+![FineART-final-fig](https://cdn-uploads.huggingface.co/production/uploads/65f9d37113336392bad1e49c/0-v7wOBVheRaGupqEBPiw.png)
+
+| | |
+|---|---|
+| Episodes | 40,543 (185.5M frames, 1,718 h, ~152.5 s each) |
+| Tasks | 151: everyday pick-and-place and sorting (~77% of hours) plus a long tail of contact-rich skills (deformable objects, tool use, cable routing, compliant alignment, precision insertion) |
+| Robot | Trossen Stationary AI, ALOHA2 grippers, 14-dim joint + gripper state/action |
+| Cameras | `cam_high` (bird's-eye), `cam_low` (worm's-eye), `cam_left_wrist`, `cam_right_wrist`; 360×640 RGB video |
+| Frame rate | 30 fps in the LeRobot files (`meta/info.json`) |
+| Format | [LeRobot](https://github.com/huggingface/lerobot) dataset **v3.0** |
+| Annotations | Whole-episode text summary with execution-quality / success metadata; contiguous, non-overlapping subtask segments with free-text descriptions |
+
+Annotations were written by human annotators (no VLM assistance), separate from the teleoperators, and audited by a third team. They are specific: colors are mentioned in 81% of object mentions, and same-class objects are disambiguated 81% of the time (e.g. "the red cup" vs "the blue cup").
+
+## Quick start
+
+Install a LeRobot version that supports the language columns (`language_persistent` / `language_events`):
+
+```bash
+pip install lerobot
+```
+
+### Load the dataset
+
+```python
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
+ds = LeRobotDataset("lerobot/fineart-dataset")
+print(ds.num_episodes, ds.num_frames, ds.fps)   # 40543, 185534500, 30
+print(ds.features.keys())
+```
+
+To train on a subset or avoid downloading everything, select episodes:
+
+```python
+ds = LeRobotDataset("lerobot/fineart-dataset", episodes=[0, 1, 2])
+```
+
+To stream instead of download:
+
+```python
+from lerobot.datasets.streaming_dataset import StreamingLeRobotDataset
+
+ds = StreamingLeRobotDataset("lerobot/fineart-dataset")
+```
+
+A local copy works the same way: pass `root="/path/to/fineart-dataset"`.
+
+### Get a frame
+
+```python
+frame = ds[1000]
+
+frame["observation.state"]                 # (14,) joint + gripper positions
+frame["action"]                            # (14,) joint + gripper targets
+frame["observation.images.cam_high"]      # (3, 360, 640) float tensor in [0, 1]
+frame["observation.images.cam_low"]
+frame["observation.images.cam_left_wrist"]
+frame["observation.images.cam_right_wrist"]
+frame["episode_index"], frame["frame_index"], frame["timestamp"]
+frame["task_index"]                        # int, index into meta/tasks.parquet
+```
+
+The 14 dims are ordered `left_{shoulder_pan, shoulder_lift, elbow_flex, wrist_angle, wrist_rotate, gripper, gripper_finger}` followed by the same seven for `right_`.
+
+### Inspect the task (whole-episode instruction)
+
+`meta/tasks.parquet` has two columns, `task_index` and `task`. Look the task string up by `task_index`:
+
+```python
+import pandas as pd
+from huggingface_hub import hf_hub_download
+
+tasks = pd.read_parquet(hf_hub_download("lerobot/fineart-dataset", "meta/tasks.parquet", repo_type="dataset"))
+task_by_idx = dict(zip(tasks["task_index"], tasks["task"]))
+print(task_by_idx[int(frame["task_index"])])      # e.g. "Arrange a breakfast setting"
+```
+
+> Use this lookup rather than relying on `frame["task"]`; `tasks.parquet` is a plain table, not indexed by task string.
+
+## Subtask annotations: `language_persistent`
+
+Every frame carries a `language_persistent` column. It holds the **full list of subtask rows for the episode**, repeated on every frame (that is what "persistent" means). Each row is a dict:
+
+| field | meaning |
+|---|---|
+| `role` | always `"assistant"` for subtasks |
+| `content` | the subtask text, e.g. `"Put the right black candle holder on the shelf"` |
+| `style` | `"subtask"` |
+| `timestamp` | **start time in seconds** (episode-relative) from which this subtask is active |
+| `camera` | `null` |
+| `tool_calls` | `null` |
+
+Example (episode 0):
+
+```python
+frame = ds[0]
+for row in frame["language_persistent"]:
+    print(f'{row["timestamp"]:6.1f}s  {row["content"]}')
+```
+
+```text
+   1.9s  Put the transparent glass candle holder on the shelf
+  12.5s  Put the top right pink glass candle holder on the shelf aligned with the other glass candle holder
+  27.0s  Put the pink glass candle holder on the shelf aligned with the other glass candle holders
+  43.3s  Put the right black candle holder on the shelf
+  55.9s  Put the left black candle holder on the shelf aligned with the other black candle holder
+  68.4s  Put the black candle holder on the shelf aligned with the other black candle holder
+  77.8s  Return to Home Position
+```
+
+Subtasks are contiguous and non-overlapping: a row is active from its `timestamp` until the next row's `timestamp` (the last one runs to the end of the episode).
+
+### Which subtask is active at this frame?
+
+LeRobot ships a resolver, `active_at`, that returns the most recent row with `timestamp <= t`:
+
+```python
+from lerobot.datasets.language_render import active_at
+
+frame = ds[1000]
+t = float(frame["timestamp"])
+row = active_at(t, persistent=frame["language_persistent"], style="subtask")
+print(t, "->", row["content"] if row else "(before the first subtask)")
+```
+
+Or in plain Python:
+
+```python
+def current_subtask(frame):
+    t = float(frame["timestamp"])
+    rows = [r for r in frame["language_persistent"] if r["timestamp"] <= t]
+    return max(rows, key=lambda r: r["timestamp"])["content"] if rows else None
+```
+
+Frames before the first subtask timestamp (the first ~2 s of an episode) have no active subtask.
+
+### Next subtask / segment boundaries
+
+```python
+rows = sorted(frame["language_persistent"], key=lambda r: r["timestamp"])
+segments = [(r["timestamp"], rows[i + 1]["timestamp"] if i + 1 < len(rows) else None, r["content"])
+            for i, r in enumerate(rows)]
+```
+
+### `language_events`
+
+`language_events` is the sibling column for event-style annotations (interjections, VQA, speech) that attach to a single frame. In FineART the subtask labels live in `language_persistent`; `language_events` is empty (`[]`).
+
+## Train directly on step-by-step language
+
+LeRobot's recipe layer turns the rows above into chat-style samples on the fly, with no preprocessing. A minimal recipe that asks the model to predict the active subtask from the episode task:
+
+```yaml
+messages:
+  - { role: user,      content: "${task}",    stream: high_level }
+  - { role: assistant, content: "${subtask}", stream: low_level, target: true }
+```
+
+`${subtask}` is bound to `active_at(t, style=subtask)` at each frame. See the LeRobot docs page *Language columns and recipes* and the `subtask_mem` recipes for blends (high-level subtask prediction + low-level execution). FineART-VLA is trained this way.
+
+## Dataset structure
+
+```text
+fineart-dataset/
+├── meta/
+│   ├── info.json              # features, fps, shapes, paths
+│   ├── stats.json             # per-feature normalization stats
+│   ├── tasks.parquet          # task_index -> task string (151 tasks)
+│   └── episodes/              # per-episode metadata (lengths, file/offset pointers)
+├── data/chunk-XXX/file-XXX.parquet           # frames: state, action, language_*, indices
+└── videos/<camera>/chunk-XXX/file-XXX.mp4    # one video stream per camera
+```
+
+Features per frame:
+
+| key | dtype / shape | notes |
+|---|---|---|
+| `observation.state` | float32 `[14]` | joint + gripper positions |
+| `action` | float32 `[14]` | joint + gripper targets |
+| `observation.images.cam_high` / `cam_low` / `cam_left_wrist` / `cam_right_wrist` | video, `[360, 640, 3]` | |
+| `language_persistent` | list of structs | subtask rows (see above) |
+| `language_events` | list of structs | unused (empty) |
+| `task_index` | int64 | index into `meta/tasks.parquet` |
+| `episode_index`, `frame_index`, `index`, `timestamp` | int64 / float32 | standard LeRobot indices |
+
+Everything is in one `train` split (`0:40543`); create your own held-out episodes by `episode_index`.
+
+## Tips
+
+- **Imbalanced tasks.** About 77% of hours are everyday pick-and-place/sorting. If you want the contact-rich long tail represented, sample by task (use `task_index`) rather than uniformly over frames.
+- **Large dataset.** ~185M frames of 4-camera video. Use `episodes=[...]` or `StreamingLeRobotDataset` for experiments; use a `DataLoader` with several workers and `video_backend="pyav"`/`"torchcodec"` for training.
+- **Timestamps are episode-relative seconds**, the same clock as the frame `timestamp`, so subtask alignment needs no conversion.
+
+## FineART-VLA
+
+[FineART-VLA](https://TODO-fineart-vla-link) is our single policy that predicts its own next subtask in language and then acts on it. Mid-training on FineART's subtask annotations raised success on a spatial-instruction task from 32% to 100% and on a long-horizon task (with human subtask guidance) from 16% to 76%. On a new robot (YAM), FineART mid-training matched baseline performance with about 10× less fine-tuning data. See the paper for details.
+
+## Citation
+
+```bibtex
+@article{choghari2026fineart,
+  title   = {{FineART}: Fine-Grained Annotated Robotic Trajectory Dataset and Vision-Language-Action Model for Bimanual Manipulation},
+  author  = {Choghari, Jade and Kooijmans, Pepijn and Agarwal, Mansi and Ciftci, Yusuf Umut and Doriwala, Aseem and Weaver, Catherine and Sivapurapu, Mouli and Yang, Kai and Wolf, Thomas and Lee, Jackson and Mannam, Pragna},
+  journal = {arXiv preprint arXiv:2609.36416},
+  year    = {2026},
+  url     = {https://arxiv.org/abs/2609.36416}
+}
+```

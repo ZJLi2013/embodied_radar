@@ -1,0 +1,13 @@
+{
+ "key": "huggingface.co/datasets/lerobot/FineART",
+ "request_url": "https://huggingface.co/datasets/lerobot/FineART/raw/main/README.md",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:39:05+00:00",
+ "raw_file": "huggingface_co_datasets_lerobot_FineART.raw.gz",
+ "text_file": "huggingface_co_datasets_lerobot_FineART.txt",
+ "raw_sha256": "6dc26db93d8d094d8c74507783ade56963c04b8d2858fa1ba46057fa4d8f7c27",
+ "text_sha256": "6dc26db93d8d094d8c74507783ade56963c04b8d2858fa1ba46057fa4d8f7c27",
+ "text_chars": 11436
+}

@@ -1,0 +1,13 @@
+{
+ "key": "openai.com/index/sophos",
+ "request_url": "https://openai.com/index/sophos",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:38:47+00:00",
+ "raw_file": "openai_com_index_sophos.raw.gz",
+ "text_file": "openai_com_index_sophos.txt",
+ "raw_sha256": "2919d35b2af9084635948cdff2d7de99e9ad1d34d0cb5da7d1307bbd7f037e6f",
+ "text_sha256": "719f4a16ff3917db4a83c87ec2a4b3993cf467c7143ea0f83ac8bbacf5ab05b0",
+ "text_chars": 5171
+}

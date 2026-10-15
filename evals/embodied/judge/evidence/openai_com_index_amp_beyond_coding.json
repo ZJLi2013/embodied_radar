@@ -1,0 +1,13 @@
+{
+ "key": "openai.com/index/amp-beyond-coding",
+ "request_url": "https://openai.com/index/amp-beyond-coding",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:38:41+00:00",
+ "raw_file": "openai_com_index_amp_beyond_coding.raw.gz",
+ "text_file": "openai_com_index_amp_beyond_coding.txt",
+ "raw_sha256": "14af197b1fafae9fcd9ba099124b2175f35fb63bcee6b7478e587af26e6b2ca1",
+ "text_sha256": "cd5700d93e1de6185899b95be08bd801863b50623bd960faa270a6aa2e9c4a19",
+ "text_chars": 4101
+}

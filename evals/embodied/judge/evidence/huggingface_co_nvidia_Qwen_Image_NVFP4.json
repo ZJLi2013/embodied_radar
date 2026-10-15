@@ -1,0 +1,13 @@
+{
+ "key": "huggingface.co/nvidia/Qwen-Image-NVFP4",
+ "request_url": "https://huggingface.co/nvidia/Qwen-Image-NVFP4/raw/main/README.md",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:38:40+00:00",
+ "raw_file": "huggingface_co_nvidia_Qwen_Image_NVFP4.raw.gz",
+ "text_file": "huggingface_co_nvidia_Qwen_Image_NVFP4.txt",
+ "raw_sha256": "1ce30a5a75fc1030b639513cc554316569fb2c69704b96ef171b0cf4f06d13a4",
+ "text_sha256": "1ce30a5a75fc1030b639513cc554316569fb2c69704b96ef171b0cf4f06d13a4",
+ "text_chars": 11743
+}

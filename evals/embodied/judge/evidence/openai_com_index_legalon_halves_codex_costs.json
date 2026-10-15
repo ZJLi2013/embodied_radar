@@ -1,0 +1,13 @@
+{
+ "key": "openai.com/index/legalon-halves-codex-costs",
+ "request_url": "https://openai.com/index/legalon-halves-codex-costs",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:38:50+00:00",
+ "raw_file": "openai_com_index_legalon_halves_codex_costs.raw.gz",
+ "text_file": "openai_com_index_legalon_halves_codex_costs.txt",
+ "raw_sha256": "8cc9b4547969742a0213f346bd8ecfe21a2116275519c32ad79b887c1c66a316",
+ "text_sha256": "71a15abccac7d5fd039e083944262125746c53b2e779842bbac19b49df37419d",
+ "text_chars": 7331
+}

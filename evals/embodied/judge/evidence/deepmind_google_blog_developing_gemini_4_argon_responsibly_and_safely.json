@@ -1,0 +1,13 @@
+{
+ "key": "deepmind.google/blog/developing-gemini-4-argon-responsibly-and-safely",
+ "request_url": "https://deepmind.google/blog/developing-gemini-4-argon-responsibly-and-safely/",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:38:31+00:00",
+ "raw_file": "deepmind_google_blog_developing_gemini_4_argon_responsibly_and_safely.raw.gz",
+ "text_file": "deepmind_google_blog_developing_gemini_4_argon_responsibly_and_safely.txt",
+ "raw_sha256": "717853fa05dd50a83ad3b794848d3f4927327c162a30c948e7c32ca47f395325",
+ "text_sha256": "988b04bf9363cfc6e8af82acf7abcb44a48ba3c8a3e5622a982fb3fe1dd9699f",
+ "text_chars": 7910
+}

@@ -1,0 +1,13 @@
+{
+ "key": "amazon.science/blog/can-we-change-an-ai-models-architecture-without-retraining-it-from-scratch",
+ "request_url": "https://www.amazon.science/blog/can-we-change-an-ai-models-architecture-without-retraining-it-from-scratch",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:38:59+00:00",
+ "raw_file": "amazon_science_blog_can_we_change_an_ai_models_architecture_without_retraining_it_from_scratch.raw.gz",
+ "text_file": "amazon_science_blog_can_we_change_an_ai_models_architecture_without_retraining_it_from_scratch.txt",
+ "raw_sha256": "a53ecf246ca19989ee07e2aeab98937fdb83f3ac98823de15eda854cd5859baf",
+ "text_sha256": "c3c8bbe778f8cd2228d217dd563e9f41b1692303679f9b4231d349ad6b86347f",
+ "text_chars": 17038
+}

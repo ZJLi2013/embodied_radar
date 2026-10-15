@@ -1,0 +1,12 @@
+ACT-2 Preview: Generalizing Reliability
+July 17, 2026
+Read article
+Mar 12, 2026
+2 min read
+We’re moving beyond demos to focus entirely on real-world deployment of our robot, Memo.
+For too long, the robotics industry has been defined by impressive demos. No matter how awe-inspiring, these demos are inherently constrained and designed to impress through the screen. The public rightfully questions when their ever-promised robots will arrive. We’re here to break the cycle.
+Public deployment starts with our beta program, rolling out to users this Fall. To deliver on this promise with quality and care, we’ve grown Engineering by 3x, Research by 4x, and Data Operations by 5x.
+We just raised an oversubscribed $165M Series B at a $1.15B valuation to stop demos and bring the first autonomous home robot to households this year. Our round is led by Coatue, with Thomas Laffont joining the board. We are also welcoming Bain Capital Ventures, Fidelity Management & Research Company, Tiger Global, Benchmark, Conviction, Xtal Ventures and others.
+We’re uniquely positioned to solve general autonomy through three core advantages:
+If you’re interested in joining us, we’re hiring across all functions: Sunday.ai/careers
+The dishes can wait.

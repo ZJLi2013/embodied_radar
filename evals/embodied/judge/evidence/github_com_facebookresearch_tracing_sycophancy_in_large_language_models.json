@@ -1,0 +1,13 @@
+{
+ "key": "github.com/facebookresearch/tracing-sycophancy-in-large-language-models",
+ "request_url": "https://api.github.com/repos/facebookresearch/tracing-sycophancy-in-large-language-models/readme",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:38:52+00:00",
+ "raw_file": "github_com_facebookresearch_tracing_sycophancy_in_large_language_models.raw.gz",
+ "text_file": "github_com_facebookresearch_tracing_sycophancy_in_large_language_models.txt",
+ "raw_sha256": "b6a1cfb37bf5c0b307f7496e90cbcddaaa38f0fe65a77453f94fde9d88a61ddb",
+ "text_sha256": "b6a1cfb37bf5c0b307f7496e90cbcddaaa38f0fe65a77453f94fde9d88a61ddb",
+ "text_chars": 4481
+}

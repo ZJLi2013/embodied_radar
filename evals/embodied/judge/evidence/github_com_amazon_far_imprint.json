@@ -1,0 +1,13 @@
+{
+ "key": "github.com/amazon-far/imprint",
+ "request_url": "https://api.github.com/repos/amazon-far/imprint/readme",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:39:00+00:00",
+ "raw_file": "github_com_amazon_far_imprint.raw.gz",
+ "text_file": "github_com_amazon_far_imprint.txt",
+ "raw_sha256": "d73ad724e0c2692caa749d17065ee6d9f33c35ccc4fddceb35d1c9da5df07800",
+ "text_sha256": "d73ad724e0c2692caa749d17065ee6d9f33c35ccc4fddceb35d1c9da5df07800",
+ "text_chars": 19951
+}

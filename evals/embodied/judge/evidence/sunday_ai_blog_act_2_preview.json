@@ -1,0 +1,13 @@
+{
+ "key": "sunday.ai/blog/act-2-preview",
+ "request_url": "https://www.sunday.ai/blog/act-2-preview",
+ "attempts": 1,
+ "status": 200,
+ "error": null,
+ "fetched_at": "2026-10-15T01:39:06+00:00",
+ "raw_file": "sunday_ai_blog_act_2_preview.raw.gz",
+ "text_file": "sunday_ai_blog_act_2_preview.txt",
+ "raw_sha256": "ef19676df6973cf3baba51ddf4e650735713104d5b786c635e016463aa20a95a",
+ "text_sha256": "3b9160aba79c57b062f613e21d03e5e7c4cfcce4cf95bbf630a5f189730cf084",
+ "text_chars": 22697
+}
