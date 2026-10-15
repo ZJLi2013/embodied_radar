@@ -6,7 +6,7 @@ Weekly radar for new technical work from leading embodied-AI teams, built from t
 
 ## 产出
 
-- **周报**：[`reports/embodied/`](reports/embodied/)，每次运行一份 `<日期>-<run_id>.md`，只列本次新增条目、待人工确认与判定失败的条目。
+- **周报**：[`reports/embodied/`](reports/embodied/)，每次运行一份 `<日期>-<run_id>.md`，只列本次新增条目，以及待人工确认、判定失败与暂缓的条目。
 - **Wiki**：[`wiki/embodied/index.md`](wiki/embodied/index.md) 与 `wiki/embodied/teams/<team>.md`，从第一周起累积全部保留条目。`entries.jsonl` 只追加，页面每次由它重新生成。
 
 ## 工作方式
