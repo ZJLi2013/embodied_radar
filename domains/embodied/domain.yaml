@@ -20,6 +20,12 @@ scope:
 page:
   date_fetch_budget: 150
 
+# Hard per-run limits for the scope judge (radar.weekly); candidates beyond them wait in state/<domain>/judge_queue.jsonl.
+judge:
+  max_requests: 100
+  max_tokens: 300000
+  max_seconds: 600
+
 # Supplementary open search for teams outside the list (SearXNG in the workflow).
 search:
   backend: searxng

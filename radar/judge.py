@@ -77,10 +77,16 @@ def fetch_evidence(item: dict, evidence_dir: Path, get=None) -> dict:
             break
 
     is_markdown = url.startswith("https://api.github.com") or url.endswith("README.md")
-    text = ""
+    text, title = "", None
     if body and meta["error"] is None:
         html_or_md = body.decode("utf-8", errors="replace")
-        text = html_or_md if is_markdown else (trafilatura.extract(html_or_md, url=url) or "")
+        if not is_markdown:
+            text = trafilatura.extract(html_or_md, url=url) or ""
+            page_meta = trafilatura.extract_metadata(html_or_md)
+            title = page_meta.title if page_meta else None
+        else:
+            text = html_or_md
+    meta["title"] = title
     name = slug(item["key"])
     evidence_dir.mkdir(parents=True, exist_ok=True)
     (evidence_dir / f"{name}.raw.gz").write_bytes(gzip.compress(body))
@@ -145,12 +151,29 @@ def call_with_deadline(fn, seconds: float):
     return box["value"]
 
 
+PARAMS = {"temperature": 0.0, "max_tokens": 400, "response_format": {"type": "json_object"}}
+
+
+def call_once(provider, messages: list[dict], model: str):
+    """One attempt: (content, raw response or None, error or None); errors are 'http:<Exc>' or 'provider:<msg>'."""
+    # A fresh copy per call: an abandoned call that answers late must not overwrite this call's response.
+    call = copy.copy(provider)
+    call.last_response = None
+    try:
+        content = call_with_deadline(lambda: call.chat(messages, model=model, **PARAMS), CALL_DEADLINE_SECONDS)
+        return content, call.last_response, None
+    except requests.RequestException as exc:
+        return None, call.last_response, f"http:{type(exc).__name__}"
+    except ValueError as exc:  # truncated or empty answer from the provider
+        return None, call.last_response, f"provider:{exc}"
+
+
 def run(items_path: Path, evidence_dir: Path, out_dir: Path, domain_dir: Path, provider, model: str) -> dict:
     domain = config.load(domain_dir)
     items = [json.loads(l) for l in items_path.read_text(encoding="utf-8").splitlines() if l.strip()]
     calls_dir = out_dir / "calls"
     calls_dir.mkdir(parents=True, exist_ok=True)
-    params = {"model": model, "temperature": 0.0, "max_tokens": 400, "response_format": {"type": "json_object"}}
+    params = {"model": model, **PARAMS}
     retries_left, results, usage = HTTP_RETRY_BUDGET, [], {"requests": 0, "prompt_tokens": 0, "completion_tokens": 0}
     seen_models = set()
 
@@ -165,23 +188,12 @@ def run(items_path: Path, evidence_dir: Path, out_dir: Path, domain_dir: Path, p
                "request_file": f"calls/{name}.request.json", "response_file": None, "error": None}
         while True:
             usage["requests"] += 1
-            # A fresh copy per call: an abandoned call that answers late must not overwrite this call's response.
-            call = copy.copy(provider)
-            call.last_response = None
-            try:
-                content = call_with_deadline(lambda: call.chat(
-                    messages, model=model, temperature=params["temperature"], max_tokens=params["max_tokens"],
-                    response_format=params["response_format"]), CALL_DEADLINE_SECONDS)
-            except requests.RequestException as exc:
-                if retries_left > 0:
-                    retries_left -= 1
-                    time.sleep(2)
-                    continue
-                row["error"] = f"http:{type(exc).__name__}"
-            except ValueError as exc:  # truncated or empty answer from the provider
-                row["error"] = f"provider:{exc}"
+            content, raw, row["error"] = call_once(provider, messages, model)
+            if row["error"] and row["error"].startswith("http:") and retries_left > 0:
+                retries_left -= 1
+                time.sleep(2)
+                continue
             break
-        raw = call.last_response
         if raw is not None:
             (calls_dir / f"{name}.response.json").write_text(json.dumps(raw, ensure_ascii=False, indent=1), encoding="utf-8")
             row["response_file"] = f"calls/{name}.response.json"

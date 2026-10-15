@@ -15,7 +15,7 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     # Scheduled runs have no inputs; both expressions fall back to the same domain.
     concurrency:
       group: radar-collect-${{ inputs.domain || 'embodied' }}
@@ -45,6 +45,13 @@ jobs:
         run: python -m radar.collect --domain "$DOMAIN"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Judge, wiki and report
+        run: python -m radar.weekly --domain "$DOMAIN"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # The model the scope judge was validated with; changing it needs a new validation.
+          DEEPSEEK_MODEL: deepseek-chat
       - name: Upload artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,9 +63,9 @@ jobs:
           run_date=$(python -c "import json, sys; print(json.load(open(sys.argv[1]))['run_date'])" "out/$DOMAIN/latest/summary.json")
           dest="history/$DOMAIN/$run_date-$GITHUB_RUN_ID"
           mkdir -p "$dest"
-          cp "out/$DOMAIN/latest/items.jsonl" "out/$DOMAIN/latest/summary.json" "$dest/"
+          cp "out/$DOMAIN/latest/items.jsonl" "out/$DOMAIN/latest/summary.json" "out/$DOMAIN/latest/judged.jsonl" "$dest/"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "state/$DOMAIN/" "history/$DOMAIN/"
-          git commit -m "更新 $DOMAIN 渠道状态与候选（$run_date）"
+          git add "state/$DOMAIN/" "history/$DOMAIN/" "wiki/$DOMAIN/" "reports/$DOMAIN/"
+          git commit -m "更新 $DOMAIN 渠道状态、候选、wiki 与周报（$run_date）"
           git push origin HEAD:main

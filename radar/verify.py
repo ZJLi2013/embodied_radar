@@ -190,6 +190,65 @@ def check_judge(summary_path: Path, judge_dir: Path = Path("evals/embodied/judge
     return problems, per_set
 
 
+REPORT_PREFIXES = tuple(f"{d}/embodied/" for d in ("state", "history", "wiki", "reports"))
+G1_KEY = "deepmind.google/blog/gemini-4-argon-for-robotics"
+
+
+def check_report(summary: dict, run_meta: dict | None, domain: str = "embodied") -> list[str]:
+    """One weekly run: judged rows reconcile with candidates, keeps reach the report and the wiki once, within budget."""
+    problems = []
+    if not run_meta or run_meta.get("conclusion") != "success":
+        return [f"workflow did not succeed: {run_meta and run_meta.get('conclusion')}"]
+    run_dir = Path(f"history/{domain}/{summary['run_date']}-{run_meta['databaseId']}")
+    out = subprocess.run(["git", "log", "-1", "--format=%H%n%an", "--name-only", "--", run_dir.as_posix()],
+                         capture_output=True, text=True, encoding="utf-8")
+    lines = [l for l in out.stdout.splitlines() if l.strip()]
+    if len(lines) < 2 or lines[1] != BOT:
+        return problems + [f"no {BOT} commit adds {run_dir}: {lines[:2]}"]
+    if stray := [f for f in lines[2:] if not f.startswith(REPORT_PREFIXES)]:
+        problems.append(f"bot commit {lines[0][:8]} touches other files: {stray}")
+
+    rows = read_rows(run_dir / "judged.jsonl")
+    keys = [r["key"] for r in rows]
+    items = {r["key"] for r in read_rows(run_dir / "items.jsonl")}
+    if len(keys) != len(set(keys)):
+        problems.append("judged.jsonl has duplicate keys")
+    if missing := items - set(keys):
+        problems.append(f"{len(missing)} candidates have no judged row")
+    tried = [r for r in rows if r["status"] in ("judged", "error")]
+    if sum(r["status"] == "error" for r in rows) > 0.1 * max(len(tried), 1):
+        problems.append(f"errors {sum(r['status'] == 'error' for r in rows)} > 10% of {len(tried)} tried")
+    if bad := [r["key"] for r in rows if r["status"] == "deferred" and not r.get("reason")]:
+        problems.append(f"deferred rows without a reason: {bad}")
+    attempts = [a for r in rows for a in r.get("attempts", [])]
+    if len(attempts) > 100 or sum(a["tokens"] for a in attempts) > 300_000:
+        problems.append(f"budget exceeded: {len(attempts)} requests, {sum(a['tokens'] for a in attempts)} tokens")
+
+    report = (Path(f"reports/{domain}") / f"{run_dir.name}.md").read_text(encoding="utf-8")
+    entries = read_rows(Path(f"wiki/{domain}/entries.jsonl"))
+    entry_keys = [e["key"] for e in entries]
+    if len(entry_keys) != len(set(entry_keys)):
+        problems.append("wiki entries.jsonl has duplicate keys")
+    for r in rows:
+        if r["status"] == "judged" and r["decision"] == "keep":
+            if r["url"] not in report:
+                problems.append(f"{r['key']}: keep missing from the report")
+            if entry_keys.count(r["key"]) != 1:
+                problems.append(f"{r['key']}: {entry_keys.count(r['key'])} wiki entries")
+    g1 = next((r for r in rows if r["key"] == G1_KEY), None)
+    brain = report.split("## 大脑", 1)[-1].split("\n## ", 1)[0]
+    g1_entry = next((e for e in entries if e["key"] == G1_KEY), None)
+    if not g1 or g1.get("decision") != "keep" or g1["url"] not in brain:
+        problems.append(f"G1 not reported under 大脑: {g1 and (g1['status'], g1.get('decision'))}")
+    elif not g1_entry or g1_entry["team"] != "deepmind-robotics":
+        problems.append(f"G1 wiki team is {g1_entry and g1_entry['team']}")
+    return problems
+
+
+def read_rows(path: Path) -> list[dict]:
+    return [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()] if path.exists() else []
+
+
 def _load(path: Path):
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
@@ -208,6 +267,8 @@ def main(kind: str, path: str, prev_path: str | None = None) -> int:
     meta = _load(Path(path).with_name("run.json"))
     if kind == "channels":
         problems = check_channels(report, meta)
+    elif kind == "report":
+        problems = check_report(report, meta)
     elif kind == "weekly":
         prev_dir = Path(prev_path).parent
         problems = check_weekly(report, json.loads(Path(prev_path).read_text(encoding="utf-8")), meta,
