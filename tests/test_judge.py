@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from radar import config, judge
-from radar.verify import check_judge
+from radar.verify import _plain, check_judge
 
 ROOT = Path(__file__).resolve().parent.parent
 DOMAIN = ROOT / "domains" / "embodied"
@@ -122,6 +122,14 @@ def test_verifier_accepts_matching_run_and_catches_label_mismatch(frozen, tmp_pa
     run(frozen, tmp_path, [answer("reject"), answer("needs_review", "")])
     problems, _ = check_judge(tmp_path / "out" / "summary.json", frozen, DOMAIN)
     assert any("decided reject, label keep" in p for p in problems)
+
+
+def test_quote_match_ignores_markup_but_not_words():
+    page = "Amp(opens in a new window) is building\n  an <b>agent</b> for **every** dev_ops team."
+    assert _plain("Amp is building an agent for every devops team.") in _plain(page)
+    assert _plain("Amp is building a robot for every devops team.") not in _plain(page)
+    card = "size: 10K<n<100K\n---\nFineART is a **bimanual** dataset.\n<p>more</p>"
+    assert _plain("FineART is a bimanual dataset.") in _plain(card)
 
 
 def test_verifier_catches_tampered_request_and_invented_quote(frozen, tmp_path):

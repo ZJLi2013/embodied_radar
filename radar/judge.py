@@ -197,7 +197,8 @@ def run(items_path: Path, evidence_dir: Path, out_dir: Path, domain_dir: Path, p
 
     summary = {
         "model_requested": model, "models_reported": sorted(m for m in seen_models if m), "params": params,
-        "inputs": {"items_sha256": hashlib.sha256(items_path.read_bytes()).hexdigest(),
+        # LF-normalized: a Windows checkout of the same commit has CRLF line endings.
+        "inputs": {"items_sha256": hashlib.sha256(items_path.read_bytes().replace(b"\r\n", b"\n")).hexdigest(),
                    "evidence_dir": evidence_dir.as_posix()},
         "usage": usage, "http_retries_used": HTTP_RETRY_BUDGET - retries_left,
         "errors": sum(r["error"] is not None for r in results), "results": results,

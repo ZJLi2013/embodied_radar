@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from datetime import date, timedelta
@@ -136,8 +137,12 @@ def check_weekly(latest: dict, prev: dict, latest_meta: dict | None, prev_meta: 
     return problems
 
 
-def _squash(text: str) -> str:
-    return " ".join(text.split())
+# Quotes are compared without markup the model may drop: HTML tags, markdown emphasis, link-annotation residue.
+_MARKUP = re.compile(r"</?[A-Za-z][^<>\n]*>|\(opens in a new window\)|[*_`]")
+
+
+def _plain(text: str) -> str:
+    return " ".join(_MARKUP.sub("", text).split())
 
 
 def check_judge(summary_path: Path, judge_dir: Path = Path("evals/embodied/judge"),
@@ -154,7 +159,7 @@ def check_judge(summary_path: Path, judge_dir: Path = Path("evals/embodied/judge
     labels = {json.loads(l)["key"]: json.loads(l) for l in (judge_dir / "labels.jsonl").read_text(encoding="utf-8").splitlines()}
     domain = config.load(domain_dir)
 
-    if summary["inputs"]["items_sha256"] != hashlib.sha256(items_path.read_bytes()).hexdigest():
+    if summary["inputs"]["items_sha256"] != hashlib.sha256(items_path.read_bytes().replace(b"\r\n", b"\n")).hexdigest():
         problems.append("summary was produced from a different items.jsonl")
     keys = [r["key"] for r in summary["results"]]
     if sorted(keys) != sorted(items) or len(keys) != len(set(keys)):
@@ -176,8 +181,8 @@ def check_judge(summary_path: Path, judge_dir: Path = Path("evals/embodied/judge
             problems.append(f"{key}: request differs from the designed template on the frozen inputs")
         if r["decision"] != label["label"]:
             problems.append(f"{key}: decided {r['decision']}, label {label['label']} ({r['reason']})")
-        quote = _squash(r["evidence_quote"] or "")
-        if (quote or r["decision"] != "needs_review") and quote not in _squash(request["messages"][1]["content"]):
+        quote = _plain(r["evidence_quote"] or "")
+        if (quote or r["decision"] != "needs_review") and quote not in _plain(request["messages"][1]["content"]):
             problems.append(f"{key}: evidence_quote not found in the request: {r['evidence_quote']!r}")
         s = per_set.setdefault(label["set"], [0, 0])
         s[0] += r["decision"] == label["label"]
