@@ -13,7 +13,7 @@ def step(name_or_uses: str) -> int:
 
 
 def test_weekly_schedule():
-    assert FLOW[True]["schedule"] == [{"cron": "0 2 * * 1"}]  # PyYAML reads the `on` key as True
+    assert FLOW[True]["schedule"] == [{"cron": "0 2 * * 0"}]  # PyYAML reads the `on` key as True
 
 
 def test_domain_falls_back_once_for_scheduled_runs():

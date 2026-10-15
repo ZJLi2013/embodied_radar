@@ -29,7 +29,7 @@ Weekly radar for new technical work from leading embodied-AI teams, built from t
 
 ## 工作方式
 
-每周一 02:00 UTC，GitHub Actions（[`.github/workflows/radar-collect.yml`](.github/workflows/radar-collect.yml)）依次执行：
+每周日 02:00 UTC（北京时间 10:00），GitHub Actions（[`.github/workflows/radar-collect.yml`](.github/workflows/radar-collect.yml)）依次执行：
 
 1. **采集**：对 [`domains/embodied/entities.yaml`](domains/embodied/entities.yaml) 中每个团队的渠道取本周新条目，窗口为执行日前 7 天。四种渠道都是确定性工具：
    - `rss`：公司级 feed 或团队论文 feed；
@@ -78,7 +78,7 @@ DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=deepseek-chat python -m radar.weekly --domai
 
 ## Roadmap
 
-- 确认首个周一定时运行能读回状态、增量更新 wiki 与周报。
+- 确认首个周日定时运行能读回状态、增量更新 wiki 与周报。
 - 把开放搜索发现的清单外团队放进周报的候选团队一节，人工确认后再加入 `entities.yaml`。
 - 每收到一条漏报就追加一条金标，攒够后测召回率。
 - 视需要跟踪旗舰仓库的 release。
