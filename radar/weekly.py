@@ -185,8 +185,24 @@ def render_report(rows: list[dict], new_entries: list[dict], items: dict, summar
     return "\n".join(lines) + "\n"
 
 
+def update_readme(readme: Path, domain: str, new_entries: list[dict], summary: dict, entities: dict,
+                  report: Path, wiki_dir: Path) -> None:
+    start, end = f"<!-- latest:{domain} -->", f"<!-- /latest:{domain} -->"
+    head, found_start, rest = readme.read_text(encoding="utf-8").partition(start)
+    _, found_end, tail = rest.partition(end)
+    if not (found_start and found_end):
+        raise ValueError(f"{readme} has no {start} ... {end} block")
+    link = lambda p: os.path.relpath(p, readme.parent).replace(os.sep, "/")
+    lines = [f"{summary['run_date']}（窗口 {summary['window']['start']} 至 {summary['window']['end']}）新增 "
+             f"{len(new_entries)} 条 · [完整周报]({link(report)}) · [全部条目]({link(wiki_dir / 'index.md')})"]
+    for direction, heading in DIRECTION_TITLE.items():
+        lines += ["", f"### {heading}"]
+        lines += [entry_line(e, entities) for e in by_date([e for e in new_entries if e["direction"] == direction])] or ["（无新增）"]
+    readme.write_text(f"{head}{start}\n" + "\n".join(lines) + f"\n{end}{tail}", encoding="utf-8")
+
+
 def run(domain_dir: Path, out_dir: Path, state_dir: Path, wiki_dir: Path, reports_dir: Path, run_id: str,
-        provider, model: str, fetch=fetch_evidence, clock=time.monotonic) -> dict:
+        provider, model: str, fetch=fetch_evidence, clock=time.monotonic, readme: Path | None = None) -> dict:
     domain = config.load(domain_dir)
     entities = {e["id"]: e for e in domain.entities}
     summary = json.loads((out_dir / "summary.json").read_text(encoding="utf-8"))
@@ -226,7 +242,10 @@ def run(domain_dir: Path, out_dir: Path, state_dir: Path, wiki_dir: Path, report
     write_jsonl(out_dir / "judged.jsonl", rows)
     report = render_report(rows, new_entries, candidates, summary, entities, domain.raw.get("title", domain.name))
     reports_dir.mkdir(parents=True, exist_ok=True)
-    (reports_dir / f"{run_date}-{run_id}.md").write_text(report, encoding="utf-8")
+    report_path = reports_dir / f"{run_date}-{run_id}.md"
+    report_path.write_text(report, encoding="utf-8")
+    if readme:
+        update_readme(readme, domain.name, new_entries, summary, entities, report_path, wiki_dir)
     return {"rows": rows, "requests": gate.requests, "tokens": gate.tokens, "new_entries": len(new_entries)}
 
 
@@ -237,7 +256,7 @@ def main() -> None:
     provider, model = make_provider()
     d = args.domain
     result = run(Path(f"domains/{d}"), Path(f"out/{d}/latest"), Path(f"state/{d}"), Path(f"wiki/{d}"),
-                 Path(f"reports/{d}"), os.environ.get("GITHUB_RUN_ID", "local"), provider, model)
+                 Path(f"reports/{d}"), os.environ.get("GITHUB_RUN_ID", "local"), provider, model, readme=Path("README.md"))
     statuses = {}
     for r in result["rows"]:
         statuses[r["status"]] = statuses.get(r["status"], 0) + 1

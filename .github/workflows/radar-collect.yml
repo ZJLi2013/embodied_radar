@@ -66,6 +66,6 @@ jobs:
           cp "out/$DOMAIN/latest/items.jsonl" "out/$DOMAIN/latest/summary.json" "out/$DOMAIN/latest/judged.jsonl" "$dest/"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "state/$DOMAIN/" "history/$DOMAIN/" "wiki/$DOMAIN/" "reports/$DOMAIN/"
+          git add "state/$DOMAIN/" "history/$DOMAIN/" "wiki/$DOMAIN/" "reports/$DOMAIN/" README.md
           git commit -m "更新 $DOMAIN 渠道状态、候选、wiki 与周报（$run_date）"
           git push origin HEAD:main

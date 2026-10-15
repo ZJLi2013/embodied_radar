@@ -1,5 +1,4 @@
 import json
-import shutil
 import time
 from pathlib import Path
 
@@ -44,11 +43,6 @@ class Provider:
 def frozen_fetch(item, evidence_dir):
     evidence_dir.mkdir(parents=True, exist_ok=True)
     name = slug(item["key"])
-    src = FROZEN / "evidence"
-    if (src / f"{name}.json").exists():
-        for ext in ("json", "txt"):
-            shutil.copy(src / f"{name}.{ext}", evidence_dir / f"{name}.{ext}")
-        return json.loads((src / f"{name}.json").read_text(encoding="utf-8"))
     (evidence_dir / f"{name}.txt").write_text(f"page text for {item['key']}", encoding="utf-8")
     return {"text_file": f"{name}.txt", "error": None, "title": None}
 
@@ -69,13 +63,13 @@ class Week:
         self.base = base
         self.state, self.wiki, self.reports = base / "state", base / "wiki", base / "reports"
 
-    def run(self, run_id, items, summary, provider, fetch=frozen_fetch, clock=time.monotonic):
+    def run(self, run_id, items, summary, provider, fetch=frozen_fetch, clock=time.monotonic, readme=None):
         out = self.base / f"out-{run_id}"
         out.mkdir(parents=True)
         (out / "items.jsonl").write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
         (out / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
         result = weekly.run(DOMAIN, out, self.state, self.wiki, self.reports, run_id, provider, "fake",
-                            fetch=fetch, clock=clock)
+                            fetch=fetch, clock=clock, readme=readme)
         report = (self.reports / f"{summary['run_date']}-{run_id}.md").read_text(encoding="utf-8")
         return result, rows(out / "judged.jsonl"), report
 
@@ -139,6 +133,23 @@ def test_second_week_appends_only_new_keeps_and_keeps_history(week):
     assert next(week.reports.glob("*r1.md")).read_bytes() == report1
     team_page = (week.wiki / "teams" / "physical-intelligence.md").read_text(encoding="utf-8")
     assert "api-beta" in team_page and "π1" in team_page
+
+
+def test_readme_block_shows_only_the_latest_run(week):
+    readme = week.base / "README.md"
+    readme.write_text("# t\n\n<!-- latest:embodied -->\nold\n<!-- /latest:embodied -->\n\n## 产出\n", encoding="utf-8")
+    week.run("r1", rows(RUN1 / "items.jsonl"), summary_for(), Provider(label_answers()), readme=readme)
+    text = readme.read_text(encoding="utf-8")
+    assert "新增 5 条 · [完整周报](reports/2026-10-15-r1.md) · [全部条目](wiki/index.md)" in text
+    assert "[Gemini 4 Argon for Robotics]" in text.split("### 大脑")[1].split("### 数据 / 仿真")[0]
+    pi = {"url": "https://www.pi.website/blog/pi-1", "key": "pi.website/blog/pi-1", "title": "π1", "published": "2026-10-20",
+          "sources": [{"entity": "physical-intelligence", "type": "page"}]}
+    week.run("r2", [pi], summary_for("2026-10-22", "2026-10-15"),
+             Provider({"pi.website/blog/pi-1": {"decision": "keep", "team": "physical-intelligence"}}), readme=readme)
+    text = readme.read_text(encoding="utf-8")
+    assert text.startswith("# t\n\n<!-- latest:embodied -->\n") and text.endswith("<!-- /latest:embodied -->\n\n## 产出\n")
+    assert text.count("<!-- latest:embodied -->") == 1 and "old" not in text and "Gemini" not in text
+    assert "新增 1 条" in text and "π1" in text and "### 数据 / 仿真\n（无新增）" in text
 
 
 def one(key="example.com/a", entity="sunday", **extra):

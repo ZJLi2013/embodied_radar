@@ -39,7 +39,7 @@ def test_weekly_judge_runs_between_collect_and_commit_with_pinned_model():
     assert weekly["env"]["DEEPSEEK_MODEL"] == "deepseek-chat"
     assert JOB["timeout-minutes"] == 45
     commit = JOB["steps"][step("Commit state and candidates")]["run"]
-    assert '"wiki/$DOMAIN/" "reports/$DOMAIN/"' in commit and "judged.jsonl" in commit
+    assert '"wiki/$DOMAIN/" "reports/$DOMAIN/" README.md' in commit and "judged.jsonl" in commit
 
 
 def test_state_is_pulled_before_collecting_and_pushable():

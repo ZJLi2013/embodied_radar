@@ -4,6 +4,24 @@ Weekly radar for new technical work from leading embodied-AI teams, built from t
 
 按周运行的领域技术雷达：跟踪一份头部团队清单，从每个团队的官方渠道取出本周新条目，用 LLM 判断是否属于范围内的技术工作，写进持续维护的 wiki，并出一份「本周变化」周报。首个领域是具身机器人，聚焦「大脑」（算法、模型）与数据 / 仿真基础设施；领域只是一份配置，换领域不改代码。
 
+## 最近一期
+
+<!-- latest:embodied -->
+2026-10-15（窗口 2026-10-08 至 2026-10-15）新增 4 条 · [完整周报](reports/embodied/2026-10-15-38688104123.md) · [全部条目](wiki/embodied/index.md)
+
+### 大脑
+- 2026-10-13 · [Gemini 4 Argon for Robotics](https://deepmind.google/blog/gemini-4-argon-for-robotics/) — Google DeepMind Robotics · rss
+  > 正文披露了 Gemini 4 Argon 这一面向机器人物理推理的模型及其在机器人控制、世界模型、仿真数字孪生上的新技术能力。
+- 2026-10-10 · [imprint](https://github.com/amazon-far/imprint) — Amazon FAR · github
+  > IMPRINT 是面向 VLA 策略的长时程记忆模块，属于机器人「大脑」的策略学习与控制算法，并发布了模型、数据与仿真评测基础设施。
+- 2026-10-08 · [robo_jepa](https://github.com/facebookresearch/robo_jepa) — Meta FAIR · github
+  > RoboJEPA 是 Meta FAIR 发布的机器人潜在世界模型，包含预训练模型、代码与规划算法，属于机器人「大脑」范畴。
+
+### 数据 / 仿真
+- 2026-10-12 · [lerobot/FineART](https://huggingface.co/datasets/lerobot/FineART) — Hugging Face LeRobot · hf
+  > FineART 是面向机器人双臂操作的数据集，含密集子任务标注，并配套发布 FineART-VLA 策略模型，属于机器人数据与 VLA 技术工作。
+<!-- /latest:embodied -->
+
 ## 产出
 
 - **周报**：[`reports/embodied/`](reports/embodied/)，每次运行一份 `<日期>-<run_id>.md`，只列本次新增条目，以及待人工确认、判定失败与暂缓的条目。
@@ -19,7 +37,7 @@ Weekly radar for new technical work from leading embodied-AI teams, built from t
    - `github`：组织下本周新建的仓库；
    - `hf`：Hugging Face 组织下本周新建的模型与数据集。
 2. **范围判定**：每个候选一次 DeepSeek 调用，依据页面正文判 keep / reject / 待人工，范围规则写在 [`domains/embodied/domain.yaml`](domains/embodied/domain.yaml)。每周有请求数、token 与时长上限，超限或失败的条目留到下次运行先判。
-3. **写 wiki 与周报**，并把渠道状态（`state/`）、本轮候选（`history/`）、`wiki/`、`reports/` 放在同一个 bot 提交里推回 `main`。
+3. **写 wiki 与周报**，刷新本页「最近一期」，并把渠道状态（`state/`）、本轮候选（`history/`）、`wiki/`、`reports/` 与本页放在同一个 bot 提交里推回 `main`。
 
 ## 运行
 
@@ -89,4 +107,4 @@ DEEPSEEK_API_KEY=... DEEPSEEK_MODEL=deepseek-chat python -m radar.weekly --domai
 
 代码与配置采用 [MIT License](LICENSE)。
 
-`wiki/`、`reports/` 中的标题、短摘与链接，以及 `evals/` 中为复现评测保存的页面副本，版权归原发布方，仅用于索引与评测；权利方要求时会删除。
+README、`wiki/`、`reports/` 中收录的标题与链接指向原发布方，内容版权归原发布方。
