@@ -6,6 +6,7 @@ radar to track latest embodied fields and feedback insights
 
 - 团队与渠道：`domains/<domain>/entities.yaml`，增删团队只改这一个文件。
 - 采集：`python -m radar.collect --domain embodied`，输出 `out/<domain>/latest/{items.jsonl,summary.json}`，渠道快照写入 `state/<domain>/`。
+- 每周一由 GitHub Actions 运行（`.github/workflows/radar-collect.yml`），把 `state/<domain>/` 与本轮候选 `history/<domain>/<日期>-<run_id>/` 放在同一个提交里推回 `main`。
 - 评测标注：`evals/<domain>/gold.yaml`，运行时不读取。
 
 开发中。

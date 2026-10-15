@@ -1,6 +1,6 @@
 # Teams tracked by the radar. Add or remove a team by editing this list only.
 # direction: brain (models / algorithms) or data_sim (data and simulation infrastructure).
-# channel types: rss {url} · page {url, link_pattern?} · github {org} · hf {org}
+# channel types: rss {url, ignore_dates?} · page {url, link_pattern?} · github {org} · hf {org}
 # A channel that keeps failing gets `broken: <reason>` and is skipped.
 
 - id: deepmind-robotics
@@ -26,7 +26,8 @@
   direction: brain
   tier: core
   channels:
-    - {type: page, url: "https://research.nvidia.com/labs/srl/"}
+    # Publication feed dates are conference dates (some in the future), so new = not seen before.
+    - {type: rss, url: "https://research.nvidia.com/labs/srl/publication/index.xml", ignore_dates: true}
     - {type: github, org: NVlabs}
 
 - id: openai

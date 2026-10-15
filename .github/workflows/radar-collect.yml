@@ -6,16 +6,27 @@ on:
       domain:
         description: Domain under domains/
         default: embodied
+  schedule:
+    - cron: "0 2 * * 1"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   collect:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Scheduled runs have no inputs; both expressions fall back to the same domain.
+    concurrency:
+      group: radar-collect-${{ inputs.domain || 'embodied' }}
+      cancel-in-progress: false
+    env:
+      DOMAIN: ${{ inputs.domain || 'embodied' }}
     steps:
       - uses: actions/checkout@v4
+      # A queued run must not collect from the SHA it was triggered at; take the state the previous run pushed.
+      - name: Pull latest state
+        run: git pull --ff-only origin main
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -30,13 +41,24 @@ jobs:
           done
           docker logs searxng | tail -50
           exit 1
-      - run: python -m radar.collect --domain "${{ inputs.domain }}"
+      - name: Collect
+        run: python -m radar.collect --domain "$DOMAIN"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: always()
+      - name: Upload artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: collect-${{ inputs.domain }}
-          path: |
-            out/${{ inputs.domain }}/latest/
-            state/${{ inputs.domain }}/
+          name: collect-${{ env.DOMAIN }}
+          path: out/${{ env.DOMAIN }}/latest/
+      - name: Commit state and candidates
+        run: |
+          run_date=$(python -c "import json, sys; print(json.load(open(sys.argv[1]))['run_date'])" "out/$DOMAIN/latest/summary.json")
+          dest="history/$DOMAIN/$run_date-$GITHUB_RUN_ID"
+          mkdir -p "$dest"
+          cp "out/$DOMAIN/latest/items.jsonl" "out/$DOMAIN/latest/summary.json" "$dest/"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "state/$DOMAIN/" "history/$DOMAIN/"
+          git commit -m "更新 $DOMAIN 渠道状态与候选（$run_date）"
+          git push origin HEAD:main

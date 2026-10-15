@@ -1,11 +1,35 @@
 """Locked verifiers for radar tasks. Exit 0 iff the acceptance criteria in the plan hold."""
 
 import json
+import subprocess
 import sys
 from datetime import date, timedelta
 from pathlib import Path
 
 import yaml
+
+BOT = "github-actions[bot]"
+
+
+def check_page_states(report: dict) -> list[str]:
+    """Each page state file: seen and pending are disjoint, cover the current links, and match the summary."""
+    problems = []
+    for eid, e in report["entities"].items():
+        for r in e["channels"]:
+            if r["type"] != "page" or r["status"] == "failed":
+                continue
+            if not r.get("snapshot") or not Path(r["snapshot"]).exists():
+                problems.append(f"{eid}: page {r['target']} wrote no snapshot ({r.get('snapshot')})")
+                continue
+            state = json.loads(Path(r["snapshot"]).read_text(encoding="utf-8"))
+            seen, pending = set(state["seen"]), set(state["pending"])
+            if seen & pending:
+                problems.append(f"{eid}: {len(seen & pending)} links are both seen and pending")
+            if missing := set(r["links"]) - seen - pending:
+                problems.append(f"{eid}: {len(missing)} current links in neither seen nor pending")
+            if len(pending) != r["pending"]:
+                problems.append(f"{eid}: state has {len(pending)} pending, summary says {r['pending']}")
+    return problems
 
 
 def check_channels(report: dict, run_meta: dict | None, gold_path: str = "evals/embodied/gold.yaml") -> list[str]:
@@ -32,21 +56,9 @@ def check_channels(report: dict, run_meta: dict | None, gold_path: str = "evals/
     if fetches["used"] > fetches["budget"]:
         problems.append(f"page date fetches {fetches['used']} > budget {fetches['budget']}")
 
+    problems += check_page_states(report)
     for eid, r in rows:
-        if r["type"] != "page" or r["status"] == "failed":
-            continue
-        if not r.get("snapshot") or not Path(r["snapshot"]).exists():
-            problems.append(f"{eid}: page {r['target']} wrote no snapshot ({r.get('snapshot')})")
-        else:
-            state = json.loads(Path(r["snapshot"]).read_text(encoding="utf-8"))
-            seen, pending = set(state["seen"]), set(state["pending"])
-            if seen & pending:
-                problems.append(f"{eid}: {len(seen & pending)} links are both seen and pending")
-            if missing := set(r["links"]) - seen - pending:
-                problems.append(f"{eid}: {len(missing)} current links in neither seen nor pending")
-            if len(pending) != r["pending"]:
-                problems.append(f"{eid}: state has {len(pending)} pending, summary says {r['pending']}")
-        if r.get("first_run"):
+        if r["type"] == "page" and r["status"] != "failed" and r.get("first_run"):
             for item in r["new"]:
                 d = item.get("page_date")
                 if not d or not start <= date.fromisoformat(d[:10]) <= run_date:
@@ -60,12 +72,84 @@ def check_channels(report: dict, run_meta: dict | None, gold_path: str = "evals/
     return problems
 
 
-def main(kind: str, path: str) -> int:
-    if kind != "channels":
-        raise SystemExit(f"unknown check {kind!r}")
+def _rows(report: dict) -> dict:
+    return {(eid, r["type"], r["target"]): r for eid, e in report["entities"].items() for r in e["channels"]}
+
+
+def _lines(path: Path) -> list[str]:
+    return path.read_text(encoding="utf-8").splitlines()
+
+
+def check_weekly(latest: dict, prev: dict, latest_meta: dict | None, prev_meta: dict | None,
+                 prev_dir: Path, domain: str = "embodied") -> list[str]:
+    """Second of two consecutive runs: state was committed by the first run and read back by the second."""
+    problems = check_channels(latest, latest_meta)
+    if not prev_meta or prev_meta.get("conclusion") != "success":
+        return problems + [f"first run did not succeed: {prev_meta and prev_meta.get('conclusion')}"]
+    if latest_meta["headSha"] == prev_meta["headSha"]:
+        problems.append("both runs used the same commit; the state commit is missing")
+    else:
+        out = subprocess.run(["git", "show", "--name-only", "--format=%an", latest_meta["headSha"]],
+                             capture_output=True, text=True, encoding="utf-8")
+        lines = [l for l in out.stdout.splitlines() if l.strip()]
+        if out.returncode or not lines or lines[0] != BOT:
+            problems.append(f"second run's head {latest_meta['headSha'][:8]} is not a {BOT} commit: {lines[:1]}")
+        elif stray := [f for f in lines[1:] if not f.startswith((f"state/{domain}/", f"history/{domain}/"))]:
+            problems.append(f"state commit touches other files: {stray}")
+
+    history = Path(f"history/{domain}/{prev['run_date']}-{prev_meta['databaseId']}/items.jsonl")
+    if not history.exists():
+        problems.append(f"{history} missing")
+    elif _lines(history) != _lines(prev_dir / "items.jsonl"):
+        problems.append(f"{history} differs from the first run's artifact items.jsonl")
+
+    now = _rows(latest)
+    for key, r in _rows(prev).items():
+        if r["type"] in ("rss", "page") and r["status"] != "failed" and now.get(key, {}).get("first_run", True):
+            problems.append(f"{key}: still a first run in the second run (state not read back)")
+
+    budget_left = latest["page_date_fetches"]["used"] < latest["page_date_fetches"]["budget"]
+    for key, r in _rows(prev).items():
+        if r["type"] != "page" or r["status"] == "failed":
+            continue
+        before = json.loads((prev_dir / "state" / Path(r["snapshot"]).relative_to(f"state/{domain}")).read_text(encoding="utf-8"))
+        cur = now[key]
+        after = json.loads(Path(cur["snapshot"]).read_text(encoding="utf-8"))
+        seen, pending = set(after["seen"]), set(after["pending"])
+        if lost := set(before["pending"]) - seen - pending:
+            problems.append(f"{key}: {len(lost)} pending keys from the first run were dropped")
+        if budget_left and (waiting := set(before["pending"]) & pending):
+            problems.append(f"{key}: {len(waiting)} first-run pending keys not checked although budget was left")
+        for item in cur["new"]:
+            if not ((item.get("late") and item["key"] in before["pending"]) or item["key"] not in r["links"]):
+                problems.append(f"{key}: {item['key']} reported new again")
+
+    srl = [k for k in now if k[0] == "nvidia-srl" and k[1] == "rss"]
+    for k in srl:
+        if now[k]["status"] == "failed" or _rows(prev).get(k, {}).get("status", "failed") == "failed":
+            problems.append(f"{k}: failed in one of the runs")
+        elif now[k]["new"]:
+            problems.append(f"{k}: {len(now[k]['new'])} new items on the same day")
+    if not srl:
+        problems.append("nvidia-srl has no rss channel")
+    return problems
+
+
+def _load(path: Path):
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
+def main(kind: str, path: str, prev_path: str | None = None) -> int:
     report = json.loads(Path(path).read_text(encoding="utf-8"))
-    meta_path = Path(path).with_name("run.json")
-    problems = check_channels(report, json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else None)
+    meta = _load(Path(path).with_name("run.json"))
+    if kind == "channels":
+        problems = check_channels(report, meta)
+    elif kind == "weekly":
+        prev_dir = Path(prev_path).parent
+        problems = check_weekly(report, json.loads(Path(prev_path).read_text(encoding="utf-8")), meta,
+                                _load(prev_dir / "run.json"), prev_dir)
+    else:
+        raise SystemExit(f"unknown check {kind!r}")
     print(f"run {report['run_date']} totals {report['totals']} by_type {report['by_type']} gold {report['gold']}")
     for line in problems:
         print(f"FAIL {line}")

@@ -6,11 +6,12 @@ import pytest
 import trafilatura
 import yaml
 
-from radar import config
+from radar import collect, config
 from radar.channels import github, hf, page, rss
 from radar.channels.common import Context
 from radar.collect import check_gold
 from radar.urls import normalize
+from radar.verify import check_page_states
 
 ROOT = Path(__file__).resolve().parent.parent
 FIX = ROOT / "tests" / "fixtures"
@@ -60,6 +61,37 @@ def test_undated_feed_is_baseline_then_diffs_against_state(tmp_path):
     assert first["status"] == "no_update" and first["fetched"] == first["baseline"] == 20
     again = rss.collect({"url": url}, c, "feeds/gdev")
     assert again["status"] == "no_update" and not again["first_run"]
+
+
+SRL_FEED = "https://research.nvidia.com/labs/srl/publication/index.xml"
+
+
+def feed(entries) -> bytes:
+    items = "".join(f"<item><title>{s}</title><link>//research.nvidia.com/labs/srl/publication/{s}/</link>"
+                    f"<pubDate>{d}</pubDate></item>" for s, d in entries)
+    return f"<rss version='2.0'><channel><title>x</title>{items}</channel></rss>".encode()
+
+
+VENUE = "Sun, 01 Nov 2026 00:00:00 +0000"
+FIRST = [("a", VENUE), ("b", "Mon, 12 Oct 2026 00:00:00 +0000"), ("c", VENUE)]
+
+
+def test_ignore_dates_feed_first_run_is_baseline(tmp_path):
+    out = rss.collect({"url": SRL_FEED, "ignore_dates": True}, ctx(tmp_path, {SRL_FEED: feed(FIRST)}), "feeds/srl")
+    assert out["status"] == "no_update" and out["baseline"] == 3
+
+
+def test_ignore_dates_feed_reports_only_unseen_entries(tmp_path):
+    channel = {"url": SRL_FEED, "ignore_dates": True}
+    rss.collect(channel, ctx(tmp_path, {SRL_FEED: feed(FIRST)}), "feeds/srl")
+    out = rss.collect(channel, ctx(tmp_path, {SRL_FEED: feed(FIRST + [("d", VENUE)])}), "feeds/srl")
+    assert [i["key"] for i in out["new"]] == ["research.nvidia.com/labs/srl/publication/d"]
+
+
+def test_protocol_relative_feed_links_resolve_against_feed_url(tmp_path):
+    out = rss.collect({"url": SRL_FEED}, ctx(tmp_path, {SRL_FEED: feed([("x", "Mon, 12 Oct 2026 00:00:00 +0000")])}), "feeds/srl")
+    assert [(i["key"], i["url"]) for i in out["new"]] == [
+        ("research.nvidia.com/labs/srl/publication/x", "https://research.nvidia.com/labs/srl/publication/x/")]
 
 
 def test_empty_feed_and_404_fail(tmp_path):
@@ -262,6 +294,39 @@ def test_embodied_config_is_valid():
     domain = config.load(ROOT / "domains" / "embodied")
     assert len(domain.entities) == 21
     assert {c["type"] for e in domain.entities for c in e["channels"]} == {"rss", "page", "github", "hf"}
+
+
+def test_srl_tracks_publication_feed_not_page():
+    srl = next(e for e in config.load(ROOT / "domains" / "embodied").entities if e["id"] == "nvidia-srl")
+    assert {"type": "rss", "url": SRL_FEED, "ignore_dates": True} in srl["channels"]
+    assert not any(c["type"] == "page" for c in srl["channels"])
+
+
+def test_pending_carries_over_between_collect_runs(tmp_path, monkeypatch):
+    domain = tmp_path / "domain"
+    domain.mkdir()
+    (domain / "domain.yaml").write_text("name: t\npage:\n  date_fetch_budget: 10\n", encoding="utf-8")
+    (domain / "queries.yaml").write_text("[]\n", encoding="utf-8")
+    team = {"direction": "brain", "tier": "core"}
+    (domain / "entities.yaml").write_text(yaml.safe_dump([
+        {"id": "sunday", "name": "S", **team, "channels": [{"type": "page", "url": SUNDAY}]},
+        {"id": "long", "name": "L", **team, "channels": [{"type": "page", "url": LONG}]},
+    ]), encoding="utf-8")
+    routes, dates = {SUNDAY: "sunday_blog.html", LONG: list_page(SLUGS)}, {**SUNDAY_DATES, **LONG_DATES}
+    monkeypatch.setattr(collect, "make_context",
+                        lambda run_date, state_dir, budget: ctx(state_dir, routes, dates, run_date, budget))
+    state = tmp_path / "state"
+
+    first = collect.run(domain, tmp_path / "out1", state, tmp_path / "none.yaml", run_date=RUN)
+    long1 = first["entities"]["long"]["channels"][0]
+    pending = set(read_state(long1)["pending"])
+    assert first["page_date_fetches"]["used"] == 10 and len(pending) == 8 and not check_page_states(first)
+
+    second = collect.run(domain, tmp_path / "out2", state, tmp_path / "none.yaml", run_date=NEXT)
+    long2 = second["entities"]["long"]["channels"][0]
+    assert long2["pending"] == 0 and pending <= set(read_state(long2)["seen"])
+    assert [(i["key"], i["late"]) for i in long2["new"]] == [("example.com/blog/p13", True)]
+    assert not check_page_states(second)
 
 
 def test_gold_g1_expects_deepmind_rss():
