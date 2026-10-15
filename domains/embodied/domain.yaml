@@ -7,12 +7,14 @@ scope:
     - 机器人「大脑」：基础模型、VLA、世界模型、策略学习与控制算法
     - 通用基座模型或 agent 用在机器人或具身仿真环境上的工作
     - 面向机器人的数据、仿真与训练基础设施
+    - 正文披露了新技术内容（模型开放、API、训练 / 推理能力、数据、仿真）的发布，即使同时是产品发布
   exclude:
     - 硬件本体（人形、四足等整机）本身
     - 自动驾驶、航天器
     - 没有落到机器人或具身环境上的通用 AI 内容
   business:
-    - 融资、合作与政府项目、人事、产品上市与营销、市场报告、活动、赞助内容
+    - 融资、合作与政府项目、人事、市场报告、活动、赞助内容
+    - 正文没有披露新技术内容的产品上市与营销
 
 # Page-date fetches per run, shared by all page channels; links beyond it stay pending for later runs.
 page:

@@ -1,5 +1,6 @@
 """Locked verifiers for radar tasks. Exit 0 iff the acceptance criteria in the plan hold."""
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -135,11 +136,69 @@ def check_weekly(latest: dict, prev: dict, latest_meta: dict | None, prev_meta: 
     return problems
 
 
+def _squash(text: str) -> str:
+    return " ".join(text.split())
+
+
+def check_judge(summary_path: Path, judge_dir: Path = Path("evals/embodied/judge"),
+                domain_dir: Path = Path("domains/embodied")) -> tuple[list[str], dict]:
+    """Every frozen item judged once, from exactly the designed request, matching its frozen label."""
+    from radar import config
+    from radar.judge import build_messages, slug
+
+    problems = []
+    out_dir = summary_path.parent
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    items_path = judge_dir / "items.jsonl"
+    items = {json.loads(l)["key"]: json.loads(l) for l in items_path.read_text(encoding="utf-8").splitlines() if l.strip()}
+    labels = {json.loads(l)["key"]: json.loads(l) for l in (judge_dir / "labels.jsonl").read_text(encoding="utf-8").splitlines()}
+    domain = config.load(domain_dir)
+
+    if summary["inputs"]["items_sha256"] != hashlib.sha256(items_path.read_bytes()).hexdigest():
+        problems.append("summary was produced from a different items.jsonl")
+    keys = [r["key"] for r in summary["results"]]
+    if sorted(keys) != sorted(items) or len(keys) != len(set(keys)):
+        problems.append(f"results cover {len(set(keys))} keys ({len(keys)} rows), items have {len(items)}")
+
+    per_set = {}
+    for r in summary["results"]:
+        key, label = r["key"], labels.get(r["key"])
+        if r["error"]:
+            problems.append(f"{key}: error {r['error']}")
+            continue
+        for f in ("request_file", "response_file"):
+            if not r.get(f) or not (out_dir / r[f]).exists():
+                problems.append(f"{key}: {f} missing")
+        request = json.loads((out_dir / r["request_file"]).read_text(encoding="utf-8"))
+        meta = json.loads((judge_dir / "evidence" / f"{slug(key)}.json").read_text(encoding="utf-8"))
+        text = (judge_dir / "evidence" / meta["text_file"]).read_text(encoding="utf-8")
+        if request["messages"] != build_messages(items[key], text, meta["error"], domain.raw["scope"], domain.entities):
+            problems.append(f"{key}: request differs from the designed template on the frozen inputs")
+        if r["decision"] != label["label"]:
+            problems.append(f"{key}: decided {r['decision']}, label {label['label']} ({r['reason']})")
+        quote = _squash(r["evidence_quote"] or "")
+        if (quote or r["decision"] != "needs_review") and quote not in _squash(request["messages"][1]["content"]):
+            problems.append(f"{key}: evidence_quote not found in the request: {r['evidence_quote']!r}")
+        s = per_set.setdefault(label["set"], [0, 0])
+        s[0] += r["decision"] == label["label"]
+        s[1] += 1
+    return problems, per_set
+
+
 def _load(path: Path):
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
 
 
 def main(kind: str, path: str, prev_path: str | None = None) -> int:
+    if kind == "judge":
+        problems, per_set = check_judge(Path(path))
+        s = json.loads(Path(path).read_text(encoding="utf-8"))
+        print(f"models {s['models_reported']} usage {s['usage']} retries {s['http_retries_used']} errors {s['errors']}")
+        print("correct / judged per set: " + ", ".join(f"{k} {v[0]}/{v[1]}" for k, v in sorted(per_set.items())))
+        for line in problems:
+            print(f"FAIL {line}")
+        print("PASS" if not problems else "FAIL")
+        return 1 if problems else 0
     report = json.loads(Path(path).read_text(encoding="utf-8"))
     meta = _load(Path(path).with_name("run.json"))
     if kind == "channels":
